@@ -1,0 +1,54 @@
+name: Sync PICO-8 visuals
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/pico8-visuals.yml'
+      - 'tools/apply_pico8_visual_upgrade.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-and-upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Sync Celeste Classic sprite atlas
+        run: |
+          set -euxo pipefail
+          mkdir -p assets
+          curl -fL --retry 5 --retry-delay 2 \
+            https://raw.githubusercontent.com/Lord-Funion/CEleste/master/src/gfx/atlas.png \
+            -o assets/pico8-atlas.png
+          test -s assets/pico8-atlas.png
+      - name: Upgrade Studio visuals and preview
+        run: |
+          set -euxo pipefail
+          python3 tools/apply_pico8_visual_upgrade.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('styles.css')
+          s=p.read_text()
+          s=s.replace('.swatch{display:block;width:23px;height:23px;margin:0 auto 3px;border:1px solid #ffffff44}', '.swatch,.sprite-swatch{display:block;width:24px;height:24px;margin:0 auto 3px;border:1px solid #ffffff44;image-rendering:pixelated;background:#000}')
+          p.write_text(s)
+          p=Path('index.html')
+          s=p.read_text().replace('Arrow keys move, Z jumps, X dashes, R restarts.','PICO-8 physics: arrows move, Z jumps, X dashes, R restarts. Exit through the top.')
+          p.write_text(s)
+          PY
+          node --check app.js
+          npm test
+      - name: Commit generated atlas and upgrade
+        run: |
+          if git diff --quiet && git ls-files --error-unmatch assets/pico8-atlas.png >/dev/null 2>&1; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js styles.css index.html assets/pico8-atlas.png
+          git commit -m "Use PICO-8 sprites and physics preview"
+          git push origin main
