@@ -14,8 +14,9 @@ await mkdir(samplesDir, { recursive: true });
 
 function room(seed) {
   const tiles = new Uint8Array(256);
-  tiles.fill(2, 240);
-  for (let y = 0; y < 16; y += 1) tiles[y * 16] = 3;
+  tiles.fill(37, 240);
+  for (let y = 0; y < 16; y += 1) tiles[y * 16] = 37;
+  tiles[200] = seed % 2 ? 38 : 37;
   return {
     id: 100 + seed,
     width: 16,
