@@ -1,6 +1,6 @@
 # CEleste Studio 1.0.0
 
-A dependency-free static browser editor for custom levels used by the TI-84 Plus CE CEleste port.
+A dependency-free static browser editor for custom levels used by the TI-84 Plus CE CEleste port. You MUST use the Celeste on https://github.com/Lord-Funion/CEleste/tree/agent/pico8-visuals-v1
 
 ## Features
 
