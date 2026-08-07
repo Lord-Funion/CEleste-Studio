@@ -1,0 +1,40 @@
+name: Package fixed Studio
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/package-fixed-studio.yml
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify Studio
+        run: |
+          node --check app.js
+          npm test
+          grep -q "Ground A" app.js
+          grep -q "Summit flag" app.js
+          ! grep -q "name:'Rock A'" app.js
+          ! grep -q "name:'Finish flag'" app.js
+      - name: Package runnable Studio
+        run: |
+          mkdir -p release/CEleste-Studio-v1.0.0/assets release/CEleste-Studio-v1.0.0/lib
+          cp index.html app.js styles.css package.json README.md LICENSE release/CEleste-Studio-v1.0.0/
+          cp assets/pico8-atlas.png release/CEleste-Studio-v1.0.0/assets/
+          cp lib/format.mjs release/CEleste-Studio-v1.0.0/lib/
+          cd release
+          zip -r CEleste-Studio-v1.0.0-fixed.zip CEleste-Studio-v1.0.0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CEleste-Studio-v1.0.0-fixed
+          path: release/CEleste-Studio-v1.0.0-fixed.zip
+          if-no-files-found: error
+          retention-days: 30
