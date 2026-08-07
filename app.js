@@ -6,10 +6,16 @@ import {
 const TILE_SIZE = 8;
 const ENTITY_TYPES = new Set([1,8,11,12,18,20,22,23,26,28,64,86,96,118]);
 const paletteItems = [
-  {id:0,name:'Empty',color:'#090811'}, {id:2,name:'Rock A',color:'#6d586f'}, {id:3,name:'Rock B',color:'#8a718d'},
-  {id:4,name:'Ice',color:'#7ee5ef'}, {id:5,name:'Snow',color:'#edfaff'}, {id:17,name:'Spikes',color:'#cfd7e7'},
-  {id:27,name:'Spikes alt',color:'#9da9ba'}, {id:1,name:'Player spawn',color:'#ff557f',special:'spawn'},
-  {id:118,name:'Finish flag',color:'#80e78b',special:'exit'}, {id:18,name:'Spring',color:'#e54b67',entity:true},
+  {id:0,name:'Empty',color:'#090811'},
+  {id:32,name:'Ground A',color:'#6d586f'}, {id:33,name:'Ground B',color:'#79627d'},
+  {id:34,name:'Ground C',color:'#856d89'}, {id:35,name:'Ground D',color:'#927895'},
+  {id:36,name:'Ground E',color:'#9d84a0'}, {id:37,name:'Ground F',color:'#a88eaa'},
+  {id:66,name:'Ice A',color:'#7ee5ef'}, {id:67,name:'Ice B',color:'#8dedf4'},
+  {id:68,name:'Ice C',color:'#a1f1f6'}, {id:69,name:'Ice D',color:'#b4f5f8'},
+  {id:17,name:'Spikes up',color:'#cfd7e7'}, {id:27,name:'Spikes down',color:'#cfd7e7'},
+  {id:43,name:'Spikes left',color:'#cfd7e7'}, {id:59,name:'Spikes right',color:'#cfd7e7'},
+  {id:1,name:'Player spawn',color:'#ff557f',special:'spawn'},
+  {id:118,name:'Summit flag',color:'#80e78b',entity:true}, {id:18,name:'Spring',color:'#e54b67',entity:true},
   {id:22,name:'Dash balloon',color:'#79d8f5',entity:true}, {id:23,name:'Falling floor',color:'#e7ba62',entity:true},
   {id:26,name:'Strawberry',color:'#f44762',entity:true}, {id:28,name:'Flying berry',color:'#ff7790',entity:true},
   {id:64,name:'Fake wall',color:'#5f4564',entity:true}, {id:8,name:'Key',color:'#ffe66b',entity:true},
@@ -56,24 +62,37 @@ const previewCanvas = $('previewCanvas'), pctx = previewCanvas.getContext('2d');
 function idFor(label) { return fnv1a(`${label}|${Date.now()}|${Math.random()}`); }
 function blankRoom(label='Room') {
   const tiles = new Uint8Array(256);
-  for (let x=0;x<16;x++) tiles[15*16+x]=2;
-  for (let y=0;y<16;y++){ tiles[y*16]=2; tiles[y*16+15]=2; }
+  for (let x=0;x<16;x++) tiles[15*16+x]=37;
+  for (let y=0;y<16;y++){ tiles[y*16]=37; tiles[y*16+15]=37; }
   return {id:idFor(label),width:16,height:16,spawnX:2,spawnY:13,exitX:13,exitY:1,flags:0,tiles,entities:[]};
 }
 function blankLevel(index=1) { return {id:idFor(`level-${index}`),title:`Level ${index}`,author:'Lord Funion',description:'',difficulty:2,rooms:[blankRoom()]}; }
-function freshProject(){return {version:1,id:idFor('pack'),title:'My CEleste Pack',author:'Lord Funion',description:'',levels:[blankLevel(1)],activeLevel:0,activeRoom:0};}
+function freshProject(){return {version:2,id:idFor('pack'),title:'My CEleste Pack',author:'Lord Funion',description:'',levels:[blankLevel(1)],activeLevel:0,activeRoom:0};}
 
 let project = loadAutosave() || freshProject();
-let tool='pencil', selected=2, specialMode=null, pointerDown=false, lastCell=-1;
+let tool='pencil', selected=37, specialMode=null, pointerDown=false, lastCell=-1;
 let history=[], future=[];
 let preview={running:false,keys:new Set(),room:0,x:0,y:0,vx:0,vy:0,won:false,raf:0,lastTime:0,accum:0,entities:[]};
 
 function currentLevel(){return project.levels[project.activeLevel];}
 function currentRoom(){return currentLevel().rooms[project.activeRoom];}
 function serializableProject(){return JSON.parse(JSON.stringify(project,(k,v)=>v instanceof Uint8Array?Array.from(v):v));}
+function migrateLegacyTerrain(level,force=false){
+  const legacy=new Map([[2,32],[3,33],[4,66],[5,67]]);
+  let hasLegacy=false,hasModern=false;
+  for(const room of level.rooms||[]){
+    const tiles=room.tiles instanceof Uint8Array?room.tiles:Uint8Array.from(room.tiles||[]);
+    room.tiles=tiles;
+    for(const id of tiles){if(legacy.has(id))hasLegacy=true;if((id>=32&&id<=39)||(id>=48&&id<=55)||(id>=66&&id<=69))hasModern=true;}
+  }
+  if(force||(hasLegacy&&!hasModern)) for(const room of level.rooms||[]) for(let i=0;i<room.tiles.length;i++) if(legacy.has(room.tiles[i])) room.tiles[i]=legacy.get(room.tiles[i]);
+  return level;
+}
 function reviveProject(raw){
   if(!raw?.levels?.length) throw new Error('Project contains no levels');
-  for(const level of raw.levels) for(const room of level.rooms) room.tiles=room.tiles instanceof Uint8Array?room.tiles:Uint8Array.from(room.tiles||[]);
+  const migrate=(raw.version||1)<2;
+  for(const level of raw.levels)migrateLegacyTerrain(level,migrate);
+  raw.version=2;
   raw.activeLevel=Math.min(raw.activeLevel||0,raw.levels.length-1); raw.activeRoom=Math.min(raw.activeRoom||0,raw.levels[raw.activeLevel].rooms.length-1); return raw;
 }
 function snapshot(){return serializableProject();}
@@ -130,9 +149,8 @@ function drawEditor(){
   for(const e of room.entities){
     if(!drawPicoSprite(ctx,e.type,e.x*cell,e.y*cell,cell)){ctx.fillStyle=tileColor(e.type);ctx.fillRect(e.x*cell,e.y*cell,cell,cell)}
   }
-  // Spawn/exit metadata are overlays; gameplay still exits through the top like Celeste Classic.
+  // Spawn is editor metadata. Rooms advance only when the player exits through the top.
   drawPicoSprite(ctx,1,room.spawnX*cell,room.spawnY*cell,cell,false,false,.72);
-  drawPicoSprite(ctx,118,room.exitX*cell,room.exitY*cell,cell,false,false,.58);
   ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--border');ctx.lineWidth=1;
   for(let i=0;i<=16;i++){ctx.beginPath();ctx.moveTo(i*cell+.5,0);ctx.lineTo(i*cell+.5,canvas.height);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*cell+.5);ctx.lineTo(canvas.width,i*cell+.5);ctx.stroke();}
 }
@@ -141,7 +159,6 @@ function cellAt(event){const rect=canvas.getBoundingClientRect();const x=Math.fl
 function applyAt(x,y,index,forceErase=false){
   const room=currentRoom();
   if(specialMode==='spawn'){room.spawnX=x;room.spawnY=y;specialMode=null;renderPalette($('paletteSearch').value);return true}
-  if(specialMode==='exit'){room.exitX=x;room.exitY=y;specialMode=null;renderPalette($('paletteSearch').value);return true}
   const effective=forceErase?'eraser':tool;
   if(effective==='eyedropper'){const e=room.entities.find(v=>v.x===x&&v.y===y);selected=e?.type??room.tiles[index];tool='pencil';renderPalette($('paletteSearch').value);updateToolButtons();return false}
   if(effective==='fill'){const from=room.tiles[index],to=selected;if(from===to)return false;const q=[index],seen=new Set(q);while(q.length){const p=q.pop();room.tiles[p]=to;const px=p%16,py=Math.floor(p/16);for(const n of [[px-1,py],[px+1,py],[px,py-1],[px,py+1]]){if(n[0]>=0&&n[0]<16&&n[1]>=0&&n[1]<16){const ni=n[1]*16+n[0];if(!seen.has(ni)&&room.tiles[ni]===from){seen.add(ni);q.push(ni)}}}}return true}
@@ -159,7 +176,7 @@ bindText('packTitle','title');bindText('packAuthor','author');bindText('packDesc
 $('paletteSearch').oninput=()=>renderPalette($('paletteSearch').value);$('zoom').oninput=()=>{resizeCanvas();drawEditor();};
 $('toolButtons').addEventListener('click',e=>{if(e.target.dataset.tool){tool=e.target.dataset.tool;specialMode=null;updateToolButtons();renderPalette($('paletteSearch').value);}});
 $('undo').onclick=undo;$('redo').onclick=redo;
-$('setSpawn').onclick=()=>{specialMode='spawn';selected=1;renderPalette($('paletteSearch').value)};$('setExit').onclick=()=>{specialMode='exit';selected=118;renderPalette($('paletteSearch').value)};
+$('setSpawn').onclick=()=>{specialMode='spawn';selected=1;renderPalette($('paletteSearch').value)};
 $('addLevel').onclick=()=>{pushHistory();project.levels.push(blankLevel(project.levels.length+1));project.activeLevel=project.levels.length-1;project.activeRoom=0;commit();renderAll();};
 $('addRoom').onclick=()=>{pushHistory();currentLevel().rooms.push(blankRoom());project.activeRoom=currentLevel().rooms.length-1;commit();renderAll();};
 $('duplicateRoom').onclick=()=>{pushHistory();const r=currentRoom();const copy={...structuredClone(r),id:idFor('room-copy'),tiles:r.tiles.slice()};currentLevel().rooms.splice(project.activeRoom+1,0,copy);project.activeRoom++;commit();renderAll();};
@@ -170,7 +187,7 @@ $('moveRoomUp').onclick=()=>moveRoom(-1);$('moveRoomDown').onclick=()=>moveRoom(
 $('newProject').onclick=()=>{if(confirm('Create a new project? The current autosave will be replaced.')){pushHistory();project=freshProject();history=[];future=[];commit();renderAll();}};
 $('saveProject').onclick=()=>download(new TextEncoder().encode(JSON.stringify(serializableProject(),null,2)),`${safeFile(project.title)}.celproj`,'application/json');
 $('openProject').onchange=async e=>{try{const raw=JSON.parse(await e.target.files[0].text());pushHistory();project=reviveProject(raw);commit();renderAll();showMessage('Project opened',`${project.levels.length} level(s) loaded.`)}catch(err){showMessage('Could not open project',err.message)}e.target.value='';};
-$('import8xv').onchange=async e=>{let count=0;const failures=[];pushHistory();for(const file of e.target.files){try{const imported=import8xv(new Uint8Array(await file.arrayBuffer()));if(imported.data.kind==='level'){project.levels.push(imported.data);count++}else{project.title=imported.data.title;project.author=imported.data.author;project.description=imported.data.description;project.levels.push(...imported.data.levels);count+=imported.data.levels.length}}catch(err){failures.push(`${file.name}: ${err.message}`)}}if(project.levels.length>1&&project.levels[0].title==='Level 1'&&isBlank(project.levels[0]))project.levels.shift();project.activeLevel=Math.max(0,project.levels.length-count);project.activeRoom=0;commit();renderAll();showMessage('Import complete',`${count} level(s) imported.${failures.length?'\n\nFailed:\n'+failures.join('\n'):''}`);e.target.value='';};
+$('import8xv').onchange=async e=>{let count=0;const failures=[];pushHistory();for(const file of e.target.files){try{const imported=import8xv(new Uint8Array(await file.arrayBuffer()));if(imported.data.kind==='level'){project.levels.push(migrateLegacyTerrain(imported.data));count++}else{project.title=imported.data.title;project.author=imported.data.author;project.description=imported.data.description;project.levels.push(...imported.data.levels.map(level=>migrateLegacyTerrain(level)));count+=imported.data.levels.length}}catch(err){failures.push(`${file.name}: ${err.message}`)}}if(project.levels.length>1&&project.levels[0].title==='Level 1'&&isBlank(project.levels[0]))project.levels.shift();project.activeLevel=Math.max(0,project.levels.length-count);project.activeRoom=0;commit();renderAll();showMessage('Import complete',`${count} level(s) imported.${failures.length?'\n\nFailed:\n'+failures.join('\n'):''}`);e.target.value='';};
 function isBlank(level){return level.rooms.length===1&&level.rooms[0].entities.length===0;}
 $('exportLevel').onclick=()=>{const level=currentLevel(),v=validateLevel(level);if(!v.valid)return showValidation(v);const name=makeVarName(level,'level');download(exportLevel8xv(level,{name}),`${name}.8xv`,'application/octet-stream');showMessage('Level exported',`${level.title}\nVariable: ${name}\nThe file is ready for TI Connect CE.`)};
 $('exportPack').onclick=()=>{const v=validatePack(project);if(!v.valid)return showValidation(v);try{const name=makeVarName(project,'pack');download(exportPack8xv(project,{name}),`${name}.8xv`,'application/octet-stream');showMessage('Pack exported',`${project.levels.length} levels\nVariable: ${name}`)}catch(err){showMessage('Pack export failed',`${err.message}\nExport individual levels or split the pack.`)}};
