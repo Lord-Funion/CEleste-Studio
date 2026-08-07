@@ -10,6 +10,12 @@
 - Undo/redo, autosave, and themes.
 - Replaced placeholder editor blocks with the Celeste Classic/PICO-8 sprite atlas used by the calculator port.
 - Reworked the playable preview around the original PICO-8 player constants and tile flags, including 30 Hz movement, jump buffering, coyote time, wall movement, 8-way dash, spikes, springs, balloons, moving platforms, and top exits.
+- Expanded the palette to every standalone original Celeste Classic map-tile family plus complete logical gameplay pieces instead of internal sprite fragments.
+- Added real supported rotation counterparts for directional spikes, moving platforms, and matching terrain/decor families.
+- Fake walls, big chests, memorials, moving platforms, flying strawberries, and balloons now render/place as complete pieces.
+- Added key/locked-chest puzzle behavior, strawberry-containing chest/fake-wall options, and configurable two-/three-dash big chests.
+- Added compound-piece footprint/overlap validation and CELV entity-flag round-trip regression tests.
+- Expanded playable preview state for keys/chests, fake-wall breaks, falling floors, flying strawberries, fruit persistence, and big-chest dash upgrades.
 
 ## 0.1.0-alpha — 2026-08-06
 
