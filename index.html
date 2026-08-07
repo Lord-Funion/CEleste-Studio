@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="CEleste Studio — create TI-84 Plus CE custom levels and export .8xv AppVars.">
   <title>CEleste Studio</title>
-  <link rel="stylesheet" href="styles.css?v=20260807-2236">
+  <link rel="stylesheet" href="styles.css?v=20260807-2255">
 </head>
 <body>
   <header class="topbar">
@@ -73,14 +73,22 @@
 
     <aside class="panel palette-panel">
       <section>
-        <h2>Palette</h2>
-        <input id="paletteSearch" placeholder="Search tiles and entities">
+        <div class="section-title"><h2>Palette — complete Celeste set</h2><span class="piece-count">all logical pieces + original map tiles</span></div>
+        <input id="paletteSearch" placeholder="Search tiles, pieces, IDs…">
+        <select id="paletteCategory" aria-label="Palette category">
+          <option>All</option><option>Terrain</option><option>Ice</option><option>Hazards</option><option>Gameplay</option><option>Background</option><option>Decoration</option><option>Basic</option>
+        </select>
         <div id="palette" class="palette"></div>
       </section>
-      <section>
-        <h2>Player spawn</h2>
+      <section class="piece-inspector">
+        <div class="section-title"><h2 id="pieceName">Selected piece</h2><span id="pieceMeta"></span></div>
+        <p id="pieceDescription" class="hint"></p>
+        <div class="rotation-row"><button id="rotateCCW" title="Rotate counter-clockwise">↺ Rotate</button><button id="rotateCW" title="Rotate clockwise">Rotate ↻</button></div>
+        <div id="pieceOptions"></div>
         <button id="setSpawn">Set player spawn</button>
-        <p class="hint">Rooms are completed by climbing out through the top edge, just like Celeste Classic. The summit flag is an optional entity, not the exit.</p>
+        <p class="hint">Press <kbd>R</kbd> to rotate clockwise, <kbd>Shift+R</kbd> for counter-clockwise. Rotation uses real PICO-8 counterpart tiles/directions, so exports match the calculator.</p>
+        <p class="hint">Fake walls, memorials, moving platforms, flying berries, balloons, and big chests are complete logical pieces — not loose sprite fragments.</p>
+        <p class="hint">Rooms finish only by climbing through the top. The summit flag is optional.</p>
       </section>
       <section>
         <div class="section-title"><h2>Validation</h2><button id="validate">Run</button></div>
@@ -88,7 +96,7 @@
       </section>
       <section class="help">
         <h2>Shortcuts</h2>
-        <p><kbd>B</kbd> pencil · <kbd>E</kbd> erase · <kbd>F</kbd> fill · <kbd>I</kbd> pick</p>
+        <p><kbd>B</kbd> pencil · <kbd>E</kbd> erase · <kbd>F</kbd> fill · <kbd>I</kbd> pick · <kbd>R</kbd> rotate</p>
         <p><kbd>Ctrl/Cmd+Z</kbd> undo · <kbd>Shift+Ctrl/Cmd+Z</kbd> redo</p>
         <p>Right-click erases. Drag paints.</p>
       </section>
@@ -102,6 +110,6 @@
   </dialog>
 
   <dialog id="messageDialog"><h2 id="messageTitle"></h2><pre id="messageBody"></pre><button id="messageClose">Close</button></dialog>
-  <script type="module" src="app.js?v=20260807-2236"></script>
+  <script type="module" src="app.js?v=20260807-2255"></script>
 </body>
 </html>
