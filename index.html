@@ -78,10 +78,9 @@
         <div id="palette" class="palette"></div>
       </section>
       <section>
-        <h2>Special positions</h2>
+        <h2>Player spawn</h2>
         <button id="setSpawn">Set player spawn</button>
-        <button id="setExit">Set room exit</button>
-        <p class="hint">Choose one, then click a grid cell.</p>
+        <p class="hint">Rooms are completed by climbing out through the top edge, just like Celeste Classic. The summit flag is an optional entity, not the exit.</p>
       </section>
       <section>
         <div class="section-title"><h2>Validation</h2><button id="validate">Run</button></div>
@@ -97,7 +96,7 @@
   </main>
 
   <dialog id="previewDialog">
-    <div class="dialog-head"><div><h2>Playable preview</h2><p>PICO-8 physics: arrows move, Z jumps, X dashes, R restarts. Exit through the top.</p></div><button id="closePreview">Close</button></div>
+    <div class="dialog-head"><div><h2>Playable preview</h2><p>PICO-8 physics: arrows move, Z jumps, X dashes, R restarts. Complete each room by exiting through the top.</p></div><button id="closePreview">Close</button></div>
     <canvas id="previewCanvas" width="512" height="512"></canvas>
     <p id="previewStatus"></p>
   </dialog>
