@@ -1,0 +1,110 @@
+--- a/app.js
++++ b/app.js
+@@ -4,36 +4,13 @@
+ } from './lib/format.mjs';
+ 
+ const TILE_SIZE = 8;
+-const ENTITY_TYPES = new Set([1,8,11,12,18,20,22,23,26,28,64,86,96,118]);
+-const paletteItems = [
+-  {id:0,name:'Empty',color:'#090811'},
+-  {id:32,name:'Ground A',color:'#6d586f'}, {id:33,name:'Ground B',color:'#79627d'},
+-  {id:34,name:'Ground C',color:'#856d89'}, {id:35,name:'Ground D',color:'#927895'},
+-  {id:36,name:'Ground E',color:'#9d84a0'}, {id:37,name:'Ground F',color:'#a88eaa'},
+-  {id:66,name:'Ice A',color:'#7ee5ef'}, {id:67,name:'Ice B',color:'#8dedf4'},
+-  {id:68,name:'Ice C',color:'#a1f1f6'}, {id:69,name:'Ice D',color:'#b4f5f8'},
+-  {id:17,name:'Spikes up',color:'#cfd7e7'}, {id:27,name:'Spikes down',color:'#cfd7e7'},
+-  {id:43,name:'Spikes left',color:'#cfd7e7'}, {id:59,name:'Spikes right',color:'#cfd7e7'},
+-  {id:1,name:'Player spawn',color:'#ff557f',special:'spawn'},
+-  {id:118,name:'Summit flag',color:'#80e78b',entity:true}, {id:18,name:'Spring',color:'#e54b67',entity:true},
+-  {id:22,name:'Dash balloon',color:'#79d8f5',entity:true}, {id:23,name:'Falling floor',color:'#e7ba62',entity:true},
+-  {id:26,name:'Strawberry',color:'#f44762',entity:true}, {id:28,name:'Flying berry',color:'#ff7790',entity:true},
+-  {id:64,name:'Fake wall',color:'#5f4564',entity:true}, {id:8,name:'Key',color:'#ffe66b',entity:true},
+-  {id:20,name:'Chest',color:'#ce9250',entity:true}, {id:11,name:'Platform left',color:'#a989d2',entity:true},
+-  {id:12,name:'Platform right',color:'#bba2e8',entity:true}, {id:86,name:'Message',color:'#e7e4ff',entity:true},
+-  {id:96,name:'Big chest',color:'#d9a766',entity:true}
+-];
+-const paletteById = new Map(paletteItems.map(i => [i.id, i]));
+-
+-// Celeste Classic / PICO-8 sprite atlas. The private repo sync workflow copies
+-// the same 128x64 atlas used by the calculator port into assets/.
+-const spriteAtlas = new Image();
+-let spriteAtlasReady = false;
+-spriteAtlas.decoding = 'async';
+-spriteAtlas.onload = () => { spriteAtlasReady = true; renderPalette($('paletteSearch')?.value || ''); drawEditor(); if (preview.running) drawPreview(currentLevel().rooms[preview.room]); };
+-spriteAtlas.onerror = () => { spriteAtlasReady = false; };
+-spriteAtlas.src = 'assets/pico8-atlas.png';
+-
++const ENTITY_TYPES = new Set([8,11,12,18,20,22,23,26,28,64,86,96,118]);
++const FRUIT_GATED_TYPES = new Set([8,20,26,28,64]);
++const COMPOUND_COMPANIONS = new Set([70,71,87,97,112,113]);
++
++// Exact PICO-8 sprite flags from Celeste Classic / CEleste. Bit 0 = solid,
++// bit 1 = normal map layer, bit 2 = background, bit 3 = foreground,
++// bit 4 = ice/slippery.
+ const TILE_MASK = [
+   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   4,2,0,0,0,0,0,0,0,0,0,2,0,0,0,0,
+@@ -45,55 +22,143 @@
+   0,0,19,19,19,19,0,0,0,2,2,2,2,2,2,2
+ ];
+ 
++const LOGICAL_PIECES = [
++  {id:0,name:'Empty',category:'Basic',description:'Erase terrain or leave a grid cell empty.',color:'#090811'},
++  {id:1,name:'Player spawn',category:'Gameplay',special:'spawn',description:'Where Madeline spawns. Each room has exactly one spawn position.',color:'#ff557f'},
++  {id:8,name:'Key',category:'Gameplay',entity:true,description:'Collecting the key unlocks every locked chest in the current room.',color:'#ffe66b'},
++  {id:20,name:'Locked chest',category:'Gameplay',entity:true,description:'Original key puzzle chest. By default it releases a strawberry after the room key is collected.',options:'strawberry',color:'#ce9250'},
++  {id:64,name:'Fake wall',category:'Gameplay',entity:true,description:'Complete 16×16 dash-breakable fake block. By default a strawberry is hidden inside.',options:'strawberry',compound:'fake-wall',color:'#5f4564'},
++  {id:96,name:'Dash upgrade chest',category:'Gameplay',entity:true,description:'Complete 16×16 big chest. Opening it creates the orb that upgrades Madeline to two (or optionally three) dashes.',options:'dashes',compound:'big-chest',color:'#d9a766'},
++  {id:18,name:'Spring',category:'Gameplay',entity:true,description:'Launches Madeline upward and refills dashes.',color:'#e54b67'},
++  {id:22,name:'Dash balloon',category:'Gameplay',entity:true,description:'Refills all available dashes, disappears, then respawns.',compound:'balloon',color:'#79d8f5'},
++  {id:23,name:'Falling floor',category:'Gameplay',entity:true,description:'Breaks after Madeline touches it, disappears temporarily, then respawns.',color:'#e7ba62'},
++  {id:26,name:'Strawberry',category:'Gameplay',entity:true,description:'Normal collectible strawberry. Collection persists through room deaths/restarts.',color:'#f44762'},
++  {id:28,name:'Flying strawberry',category:'Gameplay',entity:true,description:'Flies away after the first dash, just like Celeste Classic.',compound:'flying-berry',color:'#ff7790'},
++  {id:11,name:'Moving platform ←',category:'Gameplay',entity:true,description:'Complete two-sprite moving platform travelling left. Rotate to reverse direction.',compound:'platform',color:'#a989d2'},
++  {id:12,name:'Moving platform →',category:'Gameplay',entity:true,description:'Complete two-sprite moving platform travelling right. Rotate to reverse direction.',compound:'platform',color:'#bba2e8'},
++  {id:86,name:'Memorial message',category:'Gameplay',entity:true,description:'Complete 2×2 Celeste memorial sign plus its original message interaction.',compound:'message',color:'#e7e4ff'},
++  {id:118,name:'Summit flag',category:'Gameplay',entity:true,description:'Summit/results flag. It does NOT complete a custom room; climbing through the top does.',color:'#80e78b'}
++];
++
++function tileFlag(id,flag){return id>=0&&id<TILE_MASK.length&&(TILE_MASK[id]&(1<<flag))!==0;}
++function rawCategory(id){
++  if([17,27,43,59].includes(id))return 'Hazards';
++  if(tileFlag(id,4))return 'Ice';
++  if(tileFlag(id,0))return 'Terrain';
++  if(tileFlag(id,2))return 'Background';
++  return 'Decoration';
++}
++function rawName(id){
++  const c=rawCategory(id);
++  if(id===17)return 'Spikes ↑'; if(id===59)return 'Spikes →'; if(id===27)return 'Spikes ↓'; if(id===43)return 'Spikes ←';
++  return `${c} ${id}`;
++}
++const rawPieces=[];
++for(let id=1;id<128;id++){
++  if(!TILE_MASK[id]||ENTITY_TYPES.has(id)||COMPOUND_COMPANIONS.has(id))continue;
++  rawPieces.push({id,name:rawName(id),category:rawCategory(id),description:`Original Celeste Classic map tile ${id}. Collision/layer flags are preserved exactly.`,color:'#6d586f'});
++}
++const categoryOrder=['Basic','Terrain','Ice','Hazards','Gameplay','Background','Decoration'];
++const paletteItems=[...LOGICAL_PIECES,...rawPieces].sort((a,b)=>categoryOrder.indexOf(a.category)-categoryOrder.indexOf(b.category)||a.id-b.id);
++const paletteById=new Map(paletteItems.map(i=>[i.id,i]));
++
++// Real rotations that have genuine Celeste Classic counterparts. We do not
++// silently rotate art to a state the calculator runtime cannot reproduce.
++const ROTATE_CW=new Map([
++  [17,59],[59,27],[27,43],[43,17],
++  [11,12],[12,11],
++  [34,38],[38,50],[50,36],[36,34],
++  [41,42],[42,58],[58,57],[57,41]
++]);
++function rotateId(id,clockwise=true){
++  if(clockwise)return ROTATE_CW.get(id)??id;
++  for(const [from,to] of ROTATE_CW)if(to===id)return from;
++  return id;
++}
++
++// Celeste Classic / PICO-8 sprite atlas. The private repo carries the same
++// 128×64 atlas used by the calculator build.
++const spriteAtlas=new Image();
++let spriteAtlasReady=false;
++spriteAtlas.decoding='async';
++spriteAtlas.onload=()=>{spriteAtlasReady=true;renderPalette();drawEditor();if(preview.running)drawPreview(currentLevel().rooms[preview.room]);};
