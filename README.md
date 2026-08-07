@@ -1,4 +1,4 @@
-# CEleste Studio 0.1.0-alpha
+# CEleste Studio 1.0.0
 
 A dependency-free static browser editor for custom levels used by the TI-84 Plus CE CEleste port.
 
@@ -28,6 +28,10 @@ npm run serve
 
 The app is static and can be hosted from any ordinary web server. Browsers block some module features when opening `index.html` directly with `file://`, so local HTTP hosting is recommended.
 
+## Release
+
+Current release: **1.0.0**.
+
 ## Pricing target
 
 - Launch: $0.99 one time
@@ -38,7 +42,6 @@ Bug fixes and minor updates should remain free.
 ## Disclaimer
 
 Unofficial community software. Not affiliated with or endorsed by Extremely OK Games, Maddy Thorson, Noel Berry, Texas Instruments, or the CE Programming Toolchain developers. It does not include assets from the commercial Celeste game.
-
 
 ## Repository status
 
