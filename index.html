@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="CEleste Studio — create TI-84 Plus CE custom levels and export .8xv AppVars.">
+  <title>CEleste Studio</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>CEleste Studio <span>0.1</span></h1>
+      <p>TI-84 Plus CE level and pack editor</p>
+    </div>
+    <nav class="toolbar" aria-label="Project actions">
+      <button id="newProject">New</button>
+      <button id="saveProject">Save project</button>
+      <label class="button">Open project<input id="openProject" type="file" accept=".json,.celproj" hidden></label>
+      <label class="button">Import .8xv<input id="import8xv" type="file" accept=".8xv" multiple hidden></label>
+      <button id="exportLevel" class="primary">Export level .8xv</button>
+      <button id="exportPack" class="primary">Export pack .8xv</button>
+      <button id="previewButton">Preview</button>
+      <button id="themeButton" title="Toggle theme">◐</button>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <aside class="panel project-panel">
+      <section>
+        <div class="section-title"><h2>Pack</h2><button id="addLevel">+ Level</button></div>
+        <label>Pack title<input id="packTitle" maxlength="63"></label>
+        <label>Author<input id="packAuthor" maxlength="31"></label>
+        <label>Description<textarea id="packDescription" maxlength="255"></textarea></label>
+        <div id="levelList" class="list"></div>
+      </section>
+      <section>
+        <div class="section-title"><h2>Rooms</h2><button id="addRoom">+ Room</button></div>
+        <div id="roomList" class="list"></div>
+      </section>
+      <section>
+        <h2>Level details</h2>
+        <label>Level title<input id="levelTitle" maxlength="63"></label>
+        <label>Author<input id="levelAuthor" maxlength="31"></label>
+        <label>Description<textarea id="levelDescription" maxlength="255"></textarea></label>
+        <label>Difficulty<select id="levelDifficulty"><option value="0">Unrated</option><option value="1">Easy</option><option value="2">Normal</option><option value="3">Hard</option><option value="4">Expert</option><option value="5">Extreme</option></select></label>
+      </section>
+    </aside>
+
+    <section class="workspace">
+      <div class="editor-toolbar">
+        <div class="tool-group" id="toolButtons">
+          <button data-tool="pencil" class="active">Pencil (B)</button>
+          <button data-tool="eraser">Eraser (E)</button>
+          <button data-tool="fill">Fill (F)</button>
+          <button data-tool="eyedropper">Pick (I)</button>
+          <button id="undo">Undo</button><button id="redo">Redo</button>
+        </div>
+        <div class="status-group">
+          <label>Zoom <input id="zoom" type="range" min="1" max="4" value="3"></label>
+          <span id="cursorStatus">x 0, y 0</span>
+          <span id="sizeStatus"></span>
+        </div>
+      </div>
+      <div class="canvas-shell"><canvas id="editorCanvas" width="384" height="384" tabindex="0" aria-label="16 by 16 level grid"></canvas></div>
+      <div class="room-actions">
+        <button id="duplicateRoom">Duplicate room</button>
+        <button id="moveRoomUp">Move room up</button>
+        <button id="moveRoomDown">Move room down</button>
+        <button id="deleteRoom" class="danger">Delete room</button>
+      </div>
+    </section>
+
+    <aside class="panel palette-panel">
+      <section>
+        <h2>Palette</h2>
+        <input id="paletteSearch" placeholder="Search tiles and entities">
+        <div id="palette" class="palette"></div>
+      </section>
+      <section>
+        <h2>Special positions</h2>
+        <button id="setSpawn">Set player spawn</button>
+        <button id="setExit">Set room exit</button>
+        <p class="hint">Choose one, then click a grid cell.</p>
+      </section>
+      <section>
+        <div class="section-title"><h2>Validation</h2><button id="validate">Run</button></div>
+        <div id="validation" class="validation"><p>No validation run yet.</p></div>
+      </section>
+      <section class="help">
+        <h2>Shortcuts</h2>
+        <p><kbd>B</kbd> pencil · <kbd>E</kbd> erase · <kbd>F</kbd> fill · <kbd>I</kbd> pick</p>
+        <p><kbd>Ctrl/Cmd+Z</kbd> undo · <kbd>Shift+Ctrl/Cmd+Z</kbd> redo</p>
+        <p>Right-click erases. Drag paints.</p>
+      </section>
+    </aside>
+  </main>
+
+  <dialog id="previewDialog">
+    <div class="dialog-head"><div><h2>Playable preview</h2><p>Arrow keys move, Z jumps, X dashes, R restarts.</p></div><button id="closePreview">Close</button></div>
+    <canvas id="previewCanvas" width="512" height="512"></canvas>
+    <p id="previewStatus"></p>
+  </dialog>
+
+  <dialog id="messageDialog"><h2 id="messageTitle"></h2><pre id="messageBody"></pre><button id="messageClose">Close</button></dialog>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
