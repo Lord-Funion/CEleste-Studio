@@ -6,6 +6,8 @@ A dependency-free static browser editor for custom levels used by the TI-84 Plus
 
 - Multiple levels and ordered packs
 - Multiple 16×16 rooms per level
+- Real Celeste Classic/PICO-8 sprite atlas in the grid, palette, entities, and preview
+- PICO-8-style 30 Hz preview physics: acceleration, gravity, coyote time, jump buffering, wall slides/jumps, 8-way dash, spikes, springs, balloons, moving platforms, and top-of-room transitions
 - Terrain and entity palettes using existing CEleste IDs
 - Pencil, eraser, flood fill, and eyedropper
 - Spawn and exit markers
@@ -15,9 +17,12 @@ A dependency-free static browser editor for custom levels used by the TI-84 Plus
 - Import of single-level or pack `.8xv` AppVars
 - Export of valid archived `.8xv` AppVars
 - Independent TI checksum and `CELV` CRC32 validation
-- Basic in-browser movement/jump/dash preview
 - Light and dark themes
 - No server upload, account, telemetry, ads, subscription, or online DRM
+
+## Sprite source
+
+`assets/pico8-atlas.png` is synchronized from the sprite atlas used by the public `Lord-Funion/CEleste` calculator port. The private Studio repo therefore renders the same 8×8 art as the calculator build instead of placeholder colored squares.
 
 ## Run
 
@@ -41,7 +46,7 @@ Bug fixes and minor updates should remain free.
 
 ## Disclaimer
 
-Unofficial community software. Not affiliated with or endorsed by Extremely OK Games, Maddy Thorson, Noel Berry, Texas Instruments, or the CE Programming Toolchain developers. It does not include assets from the commercial Celeste game.
+Unofficial community software. Not affiliated with or endorsed by Extremely OK Games, Maddy Thorson, Noel Berry, Texas Instruments, or the CE Programming Toolchain developers.
 
 ## Repository status
 
