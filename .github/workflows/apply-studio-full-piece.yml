@@ -1,0 +1,40 @@
+name: Apply Studio full piece implementation
+
+on:
+  push:
+    branches: [agent/full-piece-editor-v2]
+    paths:
+      - .github/studio-full-piece.patch.part1
+      - .github/studio-full-piece.patch.part2
+      - .github/studio-full-piece.patch.part3
+      - .github/studio-full-piece.patch.part4
+      - .github/studio-full-piece.patch.part5
+      - .github/studio-full-piece.patch.part6
+      - .github/workflows/apply-studio-full-piece.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/full-piece-editor-v2
+      - name: Apply implementation patch
+        run: |
+          cat .github/studio-full-piece.patch.part{1,2,3,4,5,6} > /tmp/studio-full-piece.patch
+          git apply --check /tmp/studio-full-piece.patch
+          git apply /tmp/studio-full-piece.patch
+          git diff --check
+          node --check app.js
+          node --check lib/format.mjs
+          npm test
+      - name: Commit implementation
+        run: |
+          git config user.name "Lord-Funion Build Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add app.js index.html styles.css lib/format.mjs
+          git commit -m "Complete Studio palette and gameplay pieces"
+          git push origin HEAD:agent/full-piece-editor-v2
