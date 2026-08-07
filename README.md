@@ -22,6 +22,7 @@ CEleste Studio is a dependency-free static browser editor for custom levels and 
 - Key and locked-chest puzzles
 - Locked chests can contain strawberries
 - Fake walls can contain strawberries
+- Multiple direct/chest/fake-wall strawberry sources persist independently across deaths and restarts
 - Big chests can upgrade Madeline to two or three dashes
 - Falling floors, springs, balloons, normal/flying strawberries, keys, chests, fake walls, moving platforms, memorials, big chests, and summit flags
 - PICO-8-style 30 Hz playable preview with acceleration, gravity, coyote time, jump buffering, wall slides/jumps, 8-way dash, spikes, springs, balloons, moving platforms, falling floors, key/chest state, fake-wall breaks, fruit collection, dash upgrades, deaths/restarts, and top-of-room transitions
@@ -53,6 +54,8 @@ Studio only uses real Celeste Classic/PICO-8 counterpart tiles or gameplay direc
 ## Gameplay properties
 
 When a locked chest or fake wall is selected, its inspector lets you choose whether it contains a strawberry. When a big chest is selected, choose whether its orb upgrades Madeline to two or three dashes. These options are stored in the CELV entity `flags` byte and are consumed by the calculator runtime.
+
+Each strawberry-producing entity is treated as its own collectible source. A room can therefore contain several normal/flying strawberries plus strawberry chests and strawberry fake walls; collecting one source does not make the others disappear after a death or restart. Keys remain available while a locked chest in the room still needs to be opened.
 
 The summit flag is an optional summit/results object. It does not complete ordinary custom rooms. Rooms advance only when Madeline exits through the top edge, matching Celeste Classic.
 
