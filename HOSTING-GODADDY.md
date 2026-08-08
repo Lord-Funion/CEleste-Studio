@@ -1,18 +1,47 @@
-# Host CEleste Studio on GoDaddy Web Hosting (cPanel)
+# Future GoDaddy/cPanel deployment
 
-CEleste Studio does **not** need Node.js in production. It is a static browser application. The server only returns HTML, CSS, JavaScript modules, the sprite atlas, the generated-preview Lua template, and a WebAssembly PICO-8 runtime.
+The current CEleste Studio build is intended for private/local use, but the production runtime remains compatible with ordinary GoDaddy Web Hosting/cPanel if it is appropriate to host it later.
 
-No PHP, Node.js, npm, database, cron job, WebSocket server, build service, account system, or paid add-on is required.
+## No server runtime required
 
-## Use the generated deployment ZIP
+Production is static. GoDaddy does **not** need:
 
-The GitHub Actions **Static deploy package** workflow creates `CEleste-Studio-GoDaddy-Upload.zip`. Use that ZIP rather than copying individual repository files. During CI it downloads the pinned Fake-08 browser runtime, verifies that a generated Studio cartridge loads and steps inside the actual WebAssembly VM, and then includes every production file in the ZIP.
+- Node.js
+- npm
+- PHP
+- a database
+- a background service
+- WebSockets
+- a build command
 
-The public document root contains this structure:
+The server only returns HTML/CSS/JavaScript/WebAssembly files.
+
+## The Celeste cartridge is not deployed
+
+The GoDaddy ZIP does **not** contain the original Celeste Classic cartridge.
+
+After the user unlocks Studio in the browser, **Set original Celeste .p8** opens a local file picker. The chosen text `.p8` is validated and stored in that browser's IndexedDB. It is never POSTed or uploaded anywhere.
+
+This means the hosted Studio files can exist without redistributing the original cartridge.
+
+## Password gate caveat
+
+`private-gate.js` prevents the editor application modules from loading until `window.celestePrivatePassword(password)` succeeds. The repository stores a SHA-256 digest rather than the plaintext password.
+
+This is still client-side JavaScript. It is useful as a casual/private gate, but it is **not equivalent to HTTP Basic Auth, cPanel Directory Privacy, or another server-side access control**. A determined visitor who already knows the URL can request static files directly.
+
+If this is ever made reachable from the public internet and real access control is required, use GoDaddy/cPanel's server-side directory protection in addition to the JavaScript gate. The Studio code itself does not depend on that feature.
+
+`robots.txt` is set to `Disallow: /` to discourage indexing; that is also not authentication.
+
+## Required deployment files
+
+The CI-generated GoDaddy ZIP contains this runtime structure:
 
 ```text
 .htaccess
 index.html
+private-gate.js
 app.js
 interaction-fix.js
 styles.css
@@ -22,85 +51,48 @@ assets/
   pico8-atlas.png
 lib/
   format.mjs
+  private-cart.mjs
   pico8-cart.mjs
   pico8-preview.mjs
 preview-runtime/
-  celeste-preview.lua
   fake08.js
   fake08.wasm
 ```
 
-The rest of the repository (`tests`, `package.json`, development docs, CI files, etc.) is not required by the live site.
+There is deliberately no `celeste.p8` and no hand-written fallback physics cartridge.
 
-## Recommended URL: a subdomain
+## cPanel layout
 
-A dedicated subdomain such as `studio.example.com` is cleaner than mixing the editor into an existing website's root.
-
-In GoDaddy Web Hosting (cPanel):
-
-1. Open the GoDaddy product page.
-2. Under **Web Hosting**, select **Manage** for the cPanel hosting account.
-3. Select **cPanel Admin**.
-4. Open **Domains**.
-5. Select **Create a New Domain**.
-6. Enter the subdomain, for example `studio.example.com`.
-7. Clear **Share document root**.
-8. Set a dedicated document root, for example `public_html/celeste-studio`.
-9. Submit the domain.
-
-If the domain's DNS is managed in the same GoDaddy account, cPanel normally handles the hosted subdomain association. If DNS is managed separately, point the subdomain at the hosting account as appropriate.
-
-## Upload
-
-1. Open GoDaddy **Web Hosting > Manage**.
-2. Use **File Manager** for the domain/subdomain.
-3. Open the document root you selected.
-4. Upload `CEleste-Studio-GoDaddy-Upload.zip`.
-5. Extract it in File Manager.
-6. Make sure `index.html` itself is directly in the document root — not one extra folder deep.
-
-Example:
+Use a separate document root such as:
 
 ```text
-public_html/celeste-studio/index.html
-public_html/celeste-studio/app.js
-public_html/celeste-studio/.htaccess
-public_html/celeste-studio/lib/pico8-preview.mjs
-public_html/celeste-studio/preview-runtime/fake08.wasm
+public_html/celeste-studio/
 ```
 
-## Why `.htaccess` is included
+`index.html` must be directly in that directory, not inside an extra ZIP-name folder.
 
-The supplied `.htaccess`:
+A subdomain can point at the same document root if desired.
 
-- makes `index.html` the directory index;
-- declares `.js`/`.mjs` as JavaScript;
-- declares `.wasm` as `application/wasm`, which is required for efficient browser WebAssembly loading;
-- prevents stale HTML/JavaScript/Lua glue after an update while allowing binary/static assets to cache normally;
-- adds conservative security/referrer headers.
+## HTTPS
 
-It intentionally does not require URL rewriting or server-side code.
+Use HTTPS. The private gate uses Web Crypto (`crypto.subtle`) and the browser-local cart vault uses normal modern browser storage APIs. GoDaddy AutoSSL is sufficient when available on the hosting account.
 
-## Real PICO-8 preview
+The included `.htaccess` declares the correct JavaScript/module/WebAssembly MIME types and disables stale caching for application code.
 
-Preview is still completely static-host compatible. The visitor's browser loads `fake08.wasm`, Studio generates a temporary `.p8` cartridge from the current level entirely in memory, Fake-08 executes that cart locally, and Studio displays the VM's 128×128 framebuffer. No level data is sent to a server.
+## Updating later
 
-## Updating Studio later
-
-Replace the site's contents with the newer generated GoDaddy ZIP while preserving the directory structure. The cache rules are designed so visitors receive updated application code without needing a hard refresh.
+Extract a newer CI-generated GoDaddy ZIP over the existing Studio document root. The browser-local original cartridge is stored in IndexedDB, not in the web directory, so updating site files does not package or overwrite it.
 
 ## Verification checklist
 
-After upload, open the public URL in a normal/private browser window and verify:
+After a future deployment:
 
-- the editor loads without a blank page;
-- the sprite palette displays real Celeste/PICO-8 art;
-- adding and rotating pieces works;
-- Preview says **Real PICO-8 cartridge running in Fake-08** and responds to arrows/Z/X;
-- after a Climb Chest, C acts as the preview grab key (MATH on calculator);
-- Save Project downloads a `.celproj` file;
-- Export Level downloads an `.8xv` file;
-- importing that `.8xv` works again;
-- refreshing the page preserves autosaved work in that browser.
-
-Browser autosave uses the visitor's local browser storage. User projects are not uploaded to the GoDaddy account.
+1. Open the HTTPS Studio URL.
+2. Confirm only the private password screen is visible initially.
+3. Enter the password and confirm the editor loads.
+4. Click **Set original Celeste .p8** and choose a compatible text `.p8`.
+5. Build/open a level and run Preview.
+6. Confirm the preview status says **ORIGINAL CART PHYSICS**.
+7. Confirm Z/X/arrows behave like the supplied original cart.
+8. Confirm `.8xv` export/import still works.
+9. Open DevTools > Network and verify no Celeste `.p8` is uploaded or requested from the server.
