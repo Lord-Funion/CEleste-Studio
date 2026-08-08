@@ -10,7 +10,8 @@ function room(seed = 0) {
   tiles.fill(37, 240, 256);
   for (let i = 0; i < 16; i++) tiles[i * 16] = 37;
   tiles[200] = seed ? 38 : 37;
-  return { id: 100 + seed, width: 16, height: 16, spawnX: 2, spawnY: 13, exitX: 14, exitY: 1, flags: 0, tiles, entities: [{ type: 18, x: 8, y: 13, flags: 0 }] };
+  const rotations = new Uint8Array(256);
+  return { id: 100 + seed, width: 16, height: 16, spawnX: 2, spawnY: 13, exitX: 14, exitY: 1, flags: 0, tiles, rotations, entities: [{ type: 18, x: 8, y: 13, flags: 0 }] };
 }
 function level(id = 7) { return { id, title: `Test ${id}`, author: 'Finn', description: 'Round trip', difficulty: 2, rooms: [room(id), room(id + 1)] }; }
 
@@ -111,4 +112,27 @@ test('validation warns about locked chest without key', () => {
   const result = validateLevel(puzzle);
   assert.equal(result.valid, true);
   assert.match(result.warnings.join('\n'), /no key/i);
+});
+
+
+test('arbitrary tile rotations survive CELV v2 and 8xv round trips', () => {
+  const original=level();
+  original.rooms[0].rotations[34]=1; original.rooms[0].rotations[35]=2; original.rooms[0].rotations[36]=3;
+  const decoded=decodePayload(encodeLevelPayload(original));
+  assert.equal(decoded.version,2);
+  assert.equal(decoded.rooms[0].tiles[34],original.rooms[0].tiles[34]);
+  assert.deepEqual(Array.from(decoded.rooms[0].rotations.slice(34,37)),[1,2,3]);
+  const wrapped=import8xv(exportLevel8xv(original,{name:'CLROTATE'})).data;
+  assert.deepEqual(Array.from(wrapped.rooms[0].rotations.slice(34,37)),[1,2,3]);
+});
+
+test('entity rotation shares flags without breaking gameplay options', () => {
+  const original=level();
+  original.rooms[0].entities=[
+    {type:20,x:5,y:8,flags:(1<<6)},
+    {type:64,x:9,y:8,flags:1|(2<<6)},
+    {type:96,x:4,y:11,flags:2|(3<<6)}
+  ];
+  const decoded=decodePayload(encodeLevelPayload(original));
+  assert.deepEqual(decoded.rooms[0].entities.map(e=>e.flags),[64,129,194]);
 });

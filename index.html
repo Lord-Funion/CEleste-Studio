@@ -86,7 +86,7 @@
         <div class="rotation-row"><button id="rotateCCW" title="Rotate counter-clockwise">↺ Rotate</button><button id="rotateCW" title="Rotate clockwise">Rotate ↻</button></div>
         <div id="pieceOptions"></div>
         <button id="setSpawn">Set player spawn</button>
-        <p class="hint">Press <kbd>R</kbd> to rotate clockwise, <kbd>Shift+R</kbd> for counter-clockwise. Rotation uses real PICO-8 counterpart tiles/directions, so exports match the calculator.</p>
+        <p class="hint">Press <kbd>R</kbd> to rotate clockwise, <kbd>Shift+R</kbd> for counter-clockwise. Rotation is stored independently, so any graphical piece can be turned 0°, 90°, 180°, or 270° and exported exactly to the calculator.</p>
         <p class="hint">Fake walls, memorials, moving platforms, flying berries, balloons, and big chests are complete logical pieces — not loose sprite fragments.</p>
         <p class="hint">Rooms finish only by climbing through the top. The summit flag is optional.</p>
       </section>
@@ -110,7 +110,7 @@
   </dialog>
 
   <dialog id="messageDialog"><h2 id="messageTitle"></h2><pre id="messageBody"></pre><button id="messageClose">Close</button></dialog>
-  <script type="module" src="app.js?v=20260807-2255"></script>
+  <script type="module" src="app.js?v=20260808-arbitrary-rotation"></script>
   <script type="module" src="interaction-fix.js?v=20260808-rotation-map2"></script>
 </body>
 </html>
