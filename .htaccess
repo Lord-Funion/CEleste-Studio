@@ -5,17 +5,18 @@ AddDefaultCharset UTF-8
 # server-side framework, or rewrite router is required.
 <IfModule mod_mime.c>
   AddType text/javascript .js .mjs
+  AddType application/wasm .wasm
   AddType text/css .css
   AddType image/png .png
 </IfModule>
 
-# Avoid stale editor code after updates while still allowing the sprite atlas
-# and other images to be cached for normal performance.
+# Avoid stale editor/runtime glue after updates while allowing immutable binary
+# assets (sprite atlas and the pinned Fake-08 WASM module) to be cached.
 <IfModule mod_headers.c>
-  <FilesMatch "\.(html|css|js|mjs)$">
+  <FilesMatch "\.(html|css|js|mjs|lua)$">
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
-  <FilesMatch "\.(png|svg|webp|ico)$">
+  <FilesMatch "\.(png|svg|webp|ico|wasm)$">
     Header set Cache-Control "public, max-age=604800"
   </FilesMatch>
   Header set X-Content-Type-Options "nosniff"

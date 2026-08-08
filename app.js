@@ -2,6 +2,7 @@ import {
   fnv1a, exportLevel8xv, exportPack8xv, import8xv, validateLevel, validatePack,
   encodeLevelPayload, encodePackPayload, makeVarName
 } from './lib/format.mjs';
+import {createPico8Preview} from './lib/pico8-preview.mjs';
 
 const TILE_SIZE = 8;
 const ENTITY_TYPES = new Set([8,11,12,18,20,22,23,26,28,64,86,96,118,129]);
@@ -73,7 +74,7 @@ const paletteById=new Map(paletteItems.map(i=>[i.id,i]));
 const spriteAtlas=new Image();
 let spriteAtlasReady=false;
 spriteAtlas.decoding='async';
-spriteAtlas.onload=()=>{spriteAtlasReady=true;renderPalette();drawEditor();if(preview.running)drawPreview(currentLevel().rooms[preview.room]);};
+spriteAtlas.onload=()=>{spriteAtlasReady=true;renderPalette();drawEditor();};
 spriteAtlas.onerror=()=>{spriteAtlasReady=false;};
 spriteAtlas.src='assets/pico8-atlas.png';
 
@@ -128,7 +129,6 @@ function freshProject(){return{version:4,id:idFor('pack'),title:'My CEleste Pack
 let project=loadAutosave()||freshProject();
 let tool='pencil',selected=37,specialMode=null,placementFlags=0,placementRotation=0,pointerDown=false,lastCell=-1;
 let history=[],future=[];
-let preview={running:false,keys:new Set(),room:0,x:0,y:0,vx:0,vy:0,won:false,raf:0,lastTime:0,accum:0,maxDashes:1,collectedSources:new Set(),entities:[],climbEnabled:false,climbStamina:1100,climbing:false};
 
 function currentLevel(){return project.levels[project.activeLevel];}
 function currentRoom(){return currentLevel().rooms[project.activeRoom];}
@@ -284,106 +284,19 @@ window.addEventListener('keydown',e=>{
   const map={b:'pencil',e:'eraser',f:'fill',i:'eyedropper'};if(map[e.key.toLowerCase()]){tool=map[e.key.toLowerCase()];specialMode=null;updateToolButtons();renderPalette();}
 });
 
-// PICO-8-faithful playable preview. It implements the original room-level
-// state relationships (keys/chests, fake-wall berries, big-chest dash upgrade,
-// fall floors, balloons, springs, moving platforms and flying berries) in
-// addition to the original player acceleration/jump/dash constants.
-$('previewButton').onclick=startPreview;$('closePreview').onclick=stopPreview;$('previewDialog').addEventListener('close',stopPreview);
-function startPreview(){const validation=validateLevel(currentLevel());if(!validation.valid)return showValidation(validation);$('previewDialog').showModal();preview.running=true;preview.room=0;preview.maxDashes=1;preview.climbEnabled=false;preview.climbStamina=1100;preview.climbing=false;preview.collectedSources=new Set();preview.lastTime=performance.now();preview.accum=0;resetPreview();previewLoop(preview.lastTime);}
-function stopPreview(){preview.running=false;cancelAnimationFrame(preview.raf);preview.keys.clear();if($('previewDialog').open)$('previewDialog').close();}
-const previewSourceKey=(roomIndex,source)=>`${roomIndex}:${source}`;
-function previewSourceCollected(roomIndex,source){return Number.isInteger(source)&&preview.collectedSources.has(previewSourceKey(roomIndex,source));}
-function previewRoomNeedsKey(room){
-  let sawChest=false;
-  for(let i=0;i<(room.entities||[]).length;i++){
-    const e=room.entities[i];if(e.type!==20)continue;sawChest=true;
-    if((e.flags&1)!==0||!previewSourceCollected(preview.room,i))return true;
-  }
-  return !sawChest;
-}
-function makePreviewEntities(room){
-  const needKey=previewRoomNeedsKey(room);
-  return(room.entities||[]).map((e,i)=>({...e,_i:i,_source:i,px:e.x*8,py:e.y*8,alive:true,timer:0,state:0,fly:false,vy:0,lastX:e.x*8,baseX:e.x*8,baseY:e.y*8})).filter(e=>{
-    if(e.type===8)return needKey;
-    if(!FRUIT_GATED_TYPES.has(e.type))return true;
-    if((e.type===20||e.type===64)&&(e.flags&1)!==0)return true;
-    return !previewSourceCollected(preview.room,e._source);
-  });
-}
-function resetPreview(){const r=currentLevel().rooms[preview.room];Object.assign(preview,{x:r.spawnX*8,y:r.spawnY*8,vx:0,vy:0,remX:0,remY:0,grace:0,jbuffer:0,djump:preview.maxDashes,dashTime:0,dashEffectTime:0,dashTargetX:0,dashTargetY:0,dashAccelX:0,dashAccelY:0,pJump:false,pDash:false,flipX:false,sprite:1,sprOff:0,wasOnGround:false,won:false,deadFrames:0,hasKey:false,hasDashed:false,climbStamina:1100,climbing:false,entities:makePreviewEntities(r)});}
-window.addEventListener('keydown',e=>{if(!$('previewDialog').open)return;preview.keys.add(e.key.toLowerCase());if(['arrowup','arrowdown','arrowleft','arrowright','z','x','c','r'].includes(e.key.toLowerCase()))e.preventDefault();if(e.key.toLowerCase()==='r')resetPreview();});
-window.addEventListener('keyup',e=>preview.keys.delete(e.key.toLowerCase()));
-const pbtn=k=>preview.keys.has(k),appr=(v,target,amount)=>v>target?Math.max(v-amount,target):Math.min(v+amount,target),sign=v=>v>0?1:v<0?-1:0;
-function tileAt(room,tx,ty){if(tx<0||tx>15||ty<0||ty>15)return 0;return room.tiles[ty*16+tx]||0;}
-function tileFlagAt(room,x,y,w,h,flag){const x0=Math.max(0,Math.floor(x/8)),x1=Math.min(15,Math.floor((x+w-1)/8)),y0=Math.max(0,Math.floor(y/8)),y1=Math.min(15,Math.floor((y+h-1)/8));for(let tx=x0;tx<=x1;tx++)for(let ty=y0;ty<=y1;ty++)if(tileFlag(tileAt(room,tx,ty),flag))return true;return false;}
-function rectsOverlap(ax,ay,aw,ah,bx,by,bw,bh){return ax+aw>bx&&ay+ah>by&&ax<bx+bw&&ay<by+bh;}
-function entityColliderAt(x,y,w,h,oy=0){
-  for(const e of preview.entities||[]){if(!e.alive)continue;
-    if(e.type===64&&rectsOverlap(x,y,w,h,e.px,e.py,16,16))return e;
-    if(e.type===23&&e.state!==2&&rectsOverlap(x,y,w,h,e.px,e.py,8,8))return e;
-    if((e.type===11||e.type===12)&&oy>0&&rectsOverlap(x,y,w,h,e.px-4,e.py-1,16,3))return e;
-  }return null;
-}
-function solidAt(room,x,y,w,h,oy=0){return tileFlagAt(room,x,y,w,h,0)||!!entityColliderAt(x,y,w,h,oy);}
-function iceAt(room,x,y,w,h){return tileFlagAt(room,x,y,w,h,4);}
-function playerSolid(room,ox,oy){return solidAt(room,preview.x+1+ox,preview.y+3+oy,6,5,oy);}
-function spikesAt(room,x,y,w,h,xspd,yspd){const x0=Math.max(0,Math.floor(x/8)),x1=Math.min(15,Math.floor((x+w-1)/8)),y0=Math.max(0,Math.floor(y/8)),y1=Math.min(15,Math.floor((y+h-1)/8));for(let i=x0;i<=x1;i++)for(let j=y0;j<=y1;j++){let tile=tileAt(room,i,j);const rot=room.rotations?.[j*16+i]||0;let dir=tile===17?0:tile===59?1:tile===27?2:tile===43?3:-1;if(dir>=0){dir=(dir+rot)&3;tile=dir===0?17:dir===1?59:dir===2?27:43;}if(tile===17&&(((y+h-1)%8)>=6||y+h===j*8+8)&&yspd>=0)return true;if(tile===27&&y%8<=2&&yspd<=0)return true;if(tile===43&&x%8<=2&&xspd<=0)return true;if(tile===59&&(((x+w-1)%8)>=6||x+w===i*8+8)&&xspd>=0)return true;}return false;}
-function spawnPreviewFruit(x,y,source){preview.entities.push({type:26,x:Math.floor(x/8),y:Math.floor(y/8),flags:0,_source:source,px:x,py:y,alive:true,timer:0,state:0,vy:0});}
-function breakFakeWall(e){if(!e?.alive)return;e.alive=false;preview.vx=-sign(preview.vx)*1.5;preview.vy=-1.5;preview.dashTime=-1;if((e.flags&1)===0)spawnPreviewFruit(e.px+4,e.py+4,e._source);}
-function movePreviewX(room,amount){preview.remX+=amount;let pixels=Math.floor(preview.remX+.5);preview.remX-=pixels;const step=sign(pixels);for(let i=0;i<Math.abs(pixels);i++){const nx=preview.x+1+step,ny=preview.y+3;if(tileFlagAt(room,nx,ny,6,5,0)){preview.vx=0;preview.remX=0;break;}const hit=entityColliderAt(nx,ny,6,5,0);if(hit){if(hit.type===64&&preview.dashEffectTime>0)breakFakeWall(hit);preview.vx=0;preview.remX=0;break;}preview.x+=step;}}
-function movePreviewY(room,amount){preview.remY+=amount;let pixels=Math.floor(preview.remY+.5);preview.remY-=pixels;const step=sign(pixels);for(let i=0;i<Math.abs(pixels);i++){const nx=preview.x+1,ny=preview.y+3+step;if(tileFlagAt(room,nx,ny,6,5,0)){preview.vy=0;preview.remY=0;break;}const hit=entityColliderAt(nx,ny,6,5,step);if(hit){if(hit.type===64&&preview.dashEffectTime>0)breakFakeWall(hit);preview.vy=0;preview.remY=0;break;}preview.y+=step;}}
-function killPreview(){preview.deadFrames=15;preview.vx=preview.vy=0;}
-function collectFruit(e){e.alive=false;preview.djump=preview.maxDashes;if(Number.isInteger(e._source))preview.collectedSources.add(previewSourceKey(preview.room,e._source));}
-function updatePreviewEntities(room){
-  const px=preview.x+1,py=preview.y+3;
-  for(const e of [...preview.entities]){if(!e.alive)continue;
-    if(e.type===22){if(e.timer>0){e.timer--;if(e.timer===0)e.state=0;}if(e.state===0&&rectsOverlap(px,py,6,5,e.px,e.py,8,8)){preview.djump=preview.maxDashes;e.state=1;e.timer=60;}}
-    else if(e.type===18){if(e.timer>0)e.timer--;if(rectsOverlap(px,py,6,5,e.px,e.py,8,8)&&preview.vy>=0){preview.y=e.py-4;preview.vx/=5;preview.vy=-3;preview.djump=preview.maxDashes;e.timer=10;}}
-    else if(e.type===26){if(rectsOverlap(px,py,6,5,e.px,e.py,8,8))collectFruit(e);}
-    else if(e.type===28){if(preview.hasDashed)e.fly=true;if(e.fly){e.vy=appr(e.vy,-3.5,.25);e.py+=e.vy;if(e.py<-16)e.alive=false;}if(e.alive&&rectsOverlap(px,py,6,5,e.px,e.py,8,8))collectFruit(e);}
-    else if(e.type===8){if(rectsOverlap(px,py,6,5,e.px,e.py,8,8)){preview.hasKey=true;e.alive=false;}}
-    else if(e.type===20){if(preview.hasKey&&e.state===0){e.state=1;e.timer=20;}if(e.state===1&&--e.timer<=0){e.alive=false;if((e.flags&1)===0)spawnPreviewFruit(e.px-4,e.py-4,e._source);}}
-    else if(e.type===23){if(e.state===0&&(rectsOverlap(px,py+1,6,5,e.px,e.py,8,8)||rectsOverlap(px-1,py,8,5,e.px,e.py,8,8))){e.state=1;e.timer=15;}else if(e.state===1&&--e.timer<=0){e.state=2;e.timer=60;}else if(e.state===2&&--e.timer<=0&&!rectsOverlap(px,py,6,5,e.px,e.py,8,8))e.state=0;}
-    else if(e.type===11||e.type===12){const dir=e.type===11?-1:1;e.lastX=e.px;e.px+=dir*.65;if(e.px<-16)e.px=128;else if(e.px>128)e.px=-16;const dx=e.px-e.lastX;if(rectsOverlap(px,py+1,6,5,e.lastX-4,e.py-2,16,4)&&Math.abs(dx)<8)preview.x+=dx;}
-    else if(e.type===96){if(e.state===0&&rectsOverlap(px,py,6,5,e.px,e.py+8,16,9)&&playerSolid(room,0,1)){e.state=1;e.timer=60;preview.vx=preview.vy=0;}else if(e.state===1&&--e.timer<0){e.state=2;preview.entities.push({type:102,px:e.px+4,py:e.py+4,alive:true,vy:-4,targetDashes:(e.flags&2)?3:2,state:0,flags:0});}}
-    else if(e.type===102){e.vy=appr(e.vy,0,.5);e.py+=e.vy;if(e.vy===0&&rectsOverlap(px,py,6,5,e.px,e.py,8,8)){preview.maxDashes=e.targetDashes||2;preview.djump=preview.maxDashes;e.alive=false;}}
-    else if(e.type===129){if(rectsOverlap(px,py,6,5,e.px,e.py,8,8)){preview.climbEnabled=true;preview.climbStamina=1100;preview.collectedSources.add(previewSourceKey(preview.room,e._source));e.alive=false;}}
-  }
-}
-function previewStep(){
-  if(preview.won)return;const room=currentLevel().rooms[preview.room];if(preview.deadFrames>0){preview.deadFrames--;if(preview.deadFrames===0)resetPreview();return;}
-  const input=pbtn('arrowright')?1:(pbtn('arrowleft')?-1:0);if(spikesAt(room,preview.x+1,preview.y+3,6,5,preview.vx,preview.vy)||preview.y>128){killPreview();return;}
-  const onGround=playerSolid(room,0,1),onIce=iceAt(room,preview.x+1,preview.y+4,6,5);const jump=pbtn('z')&&!preview.pJump;preview.pJump=pbtn('z');if(jump)preview.jbuffer=4;else if(preview.jbuffer>0)preview.jbuffer--;const dash=pbtn('x')&&!preview.pDash;preview.pDash=pbtn('x');
-  if(onGround){preview.grace=6;if(preview.climbEnabled)preview.climbStamina=1100;if(preview.djump<preview.maxDashes)preview.djump=preview.maxDashes;}else if(preview.grace>0)preview.grace--;preview.dashEffectTime--;preview.climbing=false;
-  if(preview.dashTime>0){preview.dashTime--;preview.vx=appr(preview.vx,preview.dashTargetX,preview.dashAccelX);preview.vy=appr(preview.vy,preview.dashTargetY,preview.dashAccelY);}else{
-    let climbWall=0;if(preview.climbEnabled&&!onGround&&!dash&&pbtn('c')&&preview.climbStamina>0){if(playerSolid(room,-3,0)&&!iceAt(room,preview.x-2,preview.y+3,6,5))climbWall=-1;else if(playerSolid(room,3,0)&&!iceAt(room,preview.x+4,preview.y+3,6,5))climbWall=1;}
-    let climbing=climbWall!==0;if(climbing&&preview.jbuffer>0){preview.jbuffer=0;preview.climbStamina=Math.max(0,preview.climbStamina-275);preview.vy=-2;preview.vx=-climbWall*2;climbing=false;}
-    if(climbing){preview.vx=0;preview.flipX=climbWall<0;if(pbtn('arrowup')){preview.vy=-.8;preview.climbStamina=Math.max(0,preview.climbStamina-15);}else if(pbtn('arrowdown'))preview.vy=.8;else{preview.vy=0;preview.climbStamina=Math.max(0,preview.climbStamina-4);}if(preview.climbStamina===0)climbing=false;}preview.climbing=climbing;
-    if(!climbing){
-    const maxrun=1;let accel=onGround?0.6:0.4,deccel=.15;if(onGround&&onIce)accel=.05;preview.vx=Math.abs(preview.vx)>maxrun?appr(preview.vx,sign(preview.vx)*maxrun,deccel):appr(preview.vx,input*maxrun,accel);if(preview.vx!==0)preview.flipX=preview.vx<0;
-    let maxfall=2,gravity=Math.abs(preview.vy)<=.15?.105:.21;if(input!==0&&playerSolid(room,input,0)&&!iceAt(room,preview.x+1+input,preview.y+3,6,5))maxfall=.4;if(!onGround)preview.vy=appr(preview.vy,maxfall,gravity);
-    if(preview.jbuffer>0){if(preview.grace>0){preview.jbuffer=0;preview.grace=0;preview.vy=-2;}else{const wallDir=playerSolid(room,-3,0)?-1:(playerSolid(room,3,0)?1:0);if(wallDir){preview.jbuffer=0;preview.vy=-2;preview.vx=-wallDir*(maxrun+1);}}}
-    if(preview.djump>0&&dash){preview.djump--;preview.hasDashed=true;preview.dashTime=4;preview.dashEffectTime=10;const vi=pbtn('arrowup')?-1:(pbtn('arrowdown')?1:0),full=5,half=3.5355339059;if(input!==0){if(vi!==0){preview.vx=input*half;preview.vy=vi*half;}else{preview.vx=input*full;preview.vy=0;}}else if(vi!==0){preview.vx=0;preview.vy=vi*full;}else{preview.vx=preview.flipX?-1:1;preview.vy=0;}preview.dashTargetX=2*sign(preview.vx);preview.dashTargetY=2*sign(preview.vy);preview.dashAccelX=1.5;preview.dashAccelY=1.5;if(preview.vy<0)preview.dashTargetY*=.75;if(preview.vy!==0)preview.dashAccelX=1.0606601718;if(preview.vx!==0)preview.dashAccelY=10.606601718;}
-    }
-  }
-  preview.sprOff++;if(!onGround)preview.sprite=(preview.climbing||playerSolid(room,input,0))?5:3;else if(pbtn('arrowdown'))preview.sprite=6;else if(pbtn('arrowup'))preview.sprite=7;else if(preview.vx===0||(!pbtn('arrowleft')&&!pbtn('arrowright')))preview.sprite=1;else preview.sprite=1+(Math.floor(preview.sprOff/4)%4);
-  preview.wasOnGround=onGround;movePreviewX(room,preview.vx);movePreviewY(room,preview.vy);preview.x=Math.max(-1,Math.min(121,preview.x));updatePreviewEntities(room);
-  if(preview.y<-4){if(preview.room<currentLevel().rooms.length-1){preview.room++;resetPreview();}else preview.won=true;}
-}
-function previewLoop(now){if(!preview.running)return;preview.accum+=Math.min(100,now-preview.lastTime);preview.lastTime=now;while(preview.accum>=1000/30){previewStep();preview.accum-=1000/30;}drawPreview(currentLevel().rooms[preview.room]);preview.raf=requestAnimationFrame(previewLoop);}
-function drawPreviewEntity(e){
-  const scale=4;if(!e.alive)return;
-  if(e.type===22&&e.state===1)return;
-  if(e.type===23&&e.state===2)return;
-  if(e.type===102){drawPicoSprite(pctx,102,e.px*scale,e.py*scale,32);return;}
-  if(e.type===18&&e.timer>0){drawPicoSprite(pctx,19,e.px*scale,e.py*scale,32);return;}
-  if(e.type===20&&e.state===1){drawPicoSprite(pctx,20,e.px*scale,e.py*scale,32);return;}
-  drawLogicalPiece(pctx,e.type,e.px*scale,e.py*scale,32,1,entityRotation(e));
-}
-function drawPreview(room){
-  pctx.imageSmoothingEnabled=false;pctx.fillStyle='#000';pctx.fillRect(0,0,512,512);for(let y=0;y<16;y++)for(let x=0;x<16;x++){const id=room.tiles[y*16+x];if(id&&!drawPicoSprite(pctx,id,x*32,y*32,32,false,false,1,room.rotations?.[y*16+x]||0)){pctx.fillStyle=tileColor(id);pctx.fillRect(x*32,y*32,32,32);}}
-  for(const e of preview.entities||[])drawPreviewEntity(e);if(!preview.deadFrames)drawPicoSprite(pctx,preview.sprite,preview.x*4,preview.y*4,32,preview.flipX,false);if(preview.deadFrames){pctx.fillStyle='rgba(255,0,77,.22)';pctx.fillRect(0,0,512,512);}
-  $('previewStatus').textContent=preview.won?'Level complete!':`Room ${preview.room+1}/${currentLevel().rooms.length} · ${preview.djump}/${preview.maxDashes} dash${preview.maxDashes===1?'':'es'} · key ${preview.hasKey?'yes':'no'} · climb ${preview.climbEnabled?Math.ceil(preview.climbStamina/10)+'/110':'locked'} · PICO-8 @ 30 Hz`;
-}
+// Real PICO-8 preview: Studio generates a cartridge for the current level and
+// executes it inside Fake-08 WebAssembly. Browser JavaScript no longer owns
+// player physics, collision, entity timing, or room transitions.
+const pico8Preview=createPico8Preview({
+  canvas:previewCanvas,status:$('previewStatus'),dialog:$('previewDialog')
+});
+$('previewButton').onclick=async()=>{
+  const validation=validateLevel(currentLevel());
+  if(!validation.valid)return showValidation(validation);
+  try{await pico8Preview.start(currentLevel());}
+  catch(err){pico8Preview.stop();showMessage('PICO-8 preview failed',err?.message||String(err));}
+};
+$('closePreview').onclick=()=>pico8Preview.stop();
+$('previewDialog').addEventListener('close',()=>pico8Preview.stop(false));
 
 renderAll();

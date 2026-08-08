@@ -8,25 +8,49 @@ on:
 permissions:
   contents: read
 
+env:
+  FAKE08_PIN: bcd2b7ecc341341e8063b51431822b07a0eff1fb
+
 jobs:
   package:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify static runtime files
+      - name: Verify Studio source runtime files
         run: |
           test -f .htaccess
           test -f index.html
           test -f app.js
+          test -f interaction-fix.js
           test -f styles.css
           test -f robots.txt
           test -f lib/format.mjs
+          test -f lib/pico8-cart.mjs
+          test -f lib/pico8-preview.mjs
           test -f assets/pico8-atlas.png
+          test -f preview-runtime/celeste-preview.lua
+          test -f THIRD-PARTY-NOTICES.md
+      - name: Download pinned Fake-08 WebAssembly runtime
+        run: |
+          set -euxo pipefail
+          mkdir -p preview-runtime
+          base="https://raw.githubusercontent.com/fabkury/p3a/${FAKE08_PIN}/webui/pico8"
+          curl -fL --retry 5 --retry-delay 2 "$base/fake08.js" -o preview-runtime/fake08.js
+          curl -fL --retry 5 --retry-delay 2 "$base/fake08.wasm" -o preview-runtime/fake08.wasm
+          test -s preview-runtime/fake08.js
+          test -s preview-runtime/fake08.wasm
+      - name: Run Studio tests
+        run: npm test
+      - name: Prove generated cart loads and steps in Fake-08
+        run: npm run test:fake08
       - name: Build GoDaddy upload ZIP
         run: |
           zip -9 CEleste-Studio-GoDaddy-Upload.zip \
-            .htaccess index.html app.js styles.css robots.txt \
-            lib/format.mjs assets/pico8-atlas.png
+            .htaccess index.html app.js interaction-fix.js styles.css robots.txt \
+            lib/format.mjs lib/pico8-cart.mjs lib/pico8-preview.mjs \
+            assets/pico8-atlas.png preview-runtime/celeste-preview.lua \
+            preview-runtime/fake08.js preview-runtime/fake08.wasm \
+            THIRD-PARTY-NOTICES.md
           unzip -l CEleste-Studio-GoDaddy-Upload.zip
           sha256sum CEleste-Studio-GoDaddy-Upload.zip > CEleste-Studio-GoDaddy-Upload.sha256
       - uses: actions/upload-artifact@v4
