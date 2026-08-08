@@ -6,6 +6,9 @@ import {
 const TILE_SIZE = 8;
 const ENTITY_TYPES = new Set([8,11,12,18,20,22,23,26,28,64,86,96,118]);
 const FRUIT_GATED_TYPES = new Set([20,26,28,64]);
+const ENTITY_ROTATION_SHIFT=6,ENTITY_ROTATION_MASK=0xc0,ENTITY_FLAG_MASK=0x3f;
+const entityRotation=e=>((e.flags||0)&ENTITY_ROTATION_MASK)>>ENTITY_ROTATION_SHIFT;
+const entityGameplayFlags=e=>(e.flags||0)&ENTITY_FLAG_MASK;
 const COMPOUND_COMPANIONS = new Set([70,71,87,97,112,113]);
 
 // Exact PICO-8 sprite flags from Celeste Classic / CEleste. Bit 0 = solid,
@@ -62,19 +65,7 @@ const categoryOrder=['Basic','Terrain','Ice','Hazards','Gameplay','Background','
 const paletteItems=[...LOGICAL_PIECES,...rawPieces].sort((a,b)=>categoryOrder.indexOf(a.category)-categoryOrder.indexOf(b.category)||a.id-b.id);
 const paletteById=new Map(paletteItems.map(i=>[i.id,i]));
 
-// Real rotations that have genuine Celeste Classic counterparts. We do not
-// silently rotate art to a state the calculator runtime cannot reproduce.
-const ROTATE_CW=new Map([
-  [17,59],[59,27],[27,43],[43,17],
-  [11,12],[12,11],
-  [34,38],[38,50],[50,36],[36,34],
-  [41,42],[42,58],[58,57],[57,41]
-]);
-function rotateId(id,clockwise=true){
-  if(clockwise)return ROTATE_CW.get(id)??id;
-  for(const [from,to] of ROTATE_CW)if(to===id)return from;
-  return id;
-}
+// Rotation is stored independently from the atlas ID. Any graphical piece can use 0/90/180/270 degrees.
 
 // Celeste Classic / PICO-8 sprite atlas. The private repo carries the same
 // 128×64 atlas used by the calculator build.
@@ -85,14 +76,16 @@ spriteAtlas.onload=()=>{spriteAtlasReady=true;renderPalette();drawEditor();if(pr
 spriteAtlas.onerror=()=>{spriteAtlasReady=false;};
 spriteAtlas.src='assets/pico8-atlas.png';
 
-function drawPicoSprite(target,id,dx,dy,size,flipX=false,flipY=false,alpha=1){
+function drawPicoSprite(target,id,dx,dy,size,flipX=false,flipY=false,alpha=1,rotation=0){
   if(!spriteAtlasReady||id<0||id>127)return false;
   const sx=(id%16)*8,sy=Math.floor(id/16)*8;
   target.save();target.globalAlpha=alpha;target.imageSmoothingEnabled=false;
-  target.translate(dx+(flipX?size:0),dy+(flipY?size:0));target.scale(flipX?-1:1,flipY?-1:1);
-  target.drawImage(spriteAtlas,sx,sy,8,8,0,0,size,size);target.restore();return true;
+  target.translate(dx+size/2,dy+size/2);target.rotate((rotation&3)*Math.PI/2);target.scale(flipX?-1:1,flipY?-1:1);
+  target.drawImage(spriteAtlas,sx,sy,8,8,-size/2,-size/2,size,size);target.restore();return true;
 }
-function drawLogicalPiece(target,id,dx,dy,cell,alpha=1){
+function pieceBounds(id,cell){if(id===64||id===96)return{ox:0,oy:0,w:2*cell,h:2*cell};if(id===86)return{ox:0,oy:-cell,w:2*cell,h:2*cell};if(id===11||id===12)return{ox:-cell/2,oy:-cell/8,w:2*cell,h:cell};return{ox:0,oy:0,w:cell,h:cell};}
+function drawLogicalPiece(target,id,dx,dy,cell,alpha=1,rotation=0){
+  if(rotation){const b=pieceBounds(id,cell),cx=dx+b.ox+b.w/2,cy=dy+b.oy+b.h/2;target.save();target.translate(cx,cy);target.rotate((rotation&3)*Math.PI/2);target.translate(-cx,-cy);drawLogicalPiece(target,id,dx,dy,cell,alpha,0);target.restore();return true;}
   if(id===64){drawPicoSprite(target,64,dx,dy,cell,false,false,alpha);drawPicoSprite(target,65,dx+cell,dy,cell,false,false,alpha);drawPicoSprite(target,80,dx,dy+cell,cell,false,false,alpha);drawPicoSprite(target,81,dx+cell,dy+cell,cell,false,false,alpha);return true;}
   if(id===96){drawPicoSprite(target,96,dx,dy,cell,false,false,alpha);drawPicoSprite(target,97,dx+cell,dy,cell,false,false,alpha);drawPicoSprite(target,112,dx,dy+cell,cell,false,false,alpha);drawPicoSprite(target,113,dx+cell,dy+cell,cell,false,false,alpha);return true;}
   if(id===86){drawPicoSprite(target,70,dx,dy-cell,cell,false,false,alpha);drawPicoSprite(target,71,dx+cell,dy-cell,cell,false,false,alpha);drawPicoSprite(target,86,dx,dy,cell,false,false,alpha);drawPicoSprite(target,87,dx+cell,dy,cell,false,false,alpha);return true;}
@@ -121,13 +114,13 @@ function blankRoom(label='Room'){
   const tiles=new Uint8Array(256);
   for(let x=0;x<16;x++)tiles[15*16+x]=37;
   for(let y=0;y<16;y++){tiles[y*16]=37;tiles[y*16+15]=37;}
-  return{id:idFor(label),width:16,height:16,spawnX:2,spawnY:13,exitX:13,exitY:1,flags:0,tiles,entities:[]};
+  return{id:idFor(label),width:16,height:16,spawnX:2,spawnY:13,exitX:13,exitY:1,flags:0,tiles,rotations:new Uint8Array(256),entities:[]};
 }
 function blankLevel(index=1){return{id:idFor(`level-${index}`),title:`Level ${index}`,author:'Lord Funion',description:'',difficulty:2,rooms:[blankRoom()]};}
-function freshProject(){return{version:3,id:idFor('pack'),title:'My CEleste Pack',author:'Lord Funion',description:'',levels:[blankLevel(1)],activeLevel:0,activeRoom:0};}
+function freshProject(){return{version:4,id:idFor('pack'),title:'My CEleste Pack',author:'Lord Funion',description:'',levels:[blankLevel(1)],activeLevel:0,activeRoom:0};}
 
 let project=loadAutosave()||freshProject();
-let tool='pencil',selected=37,specialMode=null,placementFlags=0,pointerDown=false,lastCell=-1;
+let tool='pencil',selected=37,specialMode=null,placementFlags=0,placementRotation=0,pointerDown=false,lastCell=-1;
 let history=[],future=[];
 let preview={running:false,keys:new Set(),room:0,x:0,y:0,vx:0,vy:0,won:false,raf:0,lastTime:0,accum:0,maxDashes:1,collectedSources:new Set(),entities:[]};
 
@@ -157,8 +150,8 @@ function migrateLegacyEntities(level){
 function reviveProject(raw){
   if(!raw?.levels?.length)throw new Error('Project contains no levels');
   const migrate=(raw.version||1)<2;
-  for(const level of raw.levels){migrateLegacyTerrain(level,migrate);migrateLegacyEntities(level);for(const room of level.rooms){room.entities=(room.entities||[]).map(e=>({...e,flags:e.flags??0}));}}
-  raw.version=3;raw.activeLevel=Math.min(raw.activeLevel||0,raw.levels.length-1);raw.activeRoom=Math.min(raw.activeRoom||0,raw.levels[raw.activeLevel].rooms.length-1);return raw;
+  for(const level of raw.levels){migrateLegacyTerrain(level,migrate);migrateLegacyEntities(level);for(const room of level.rooms){room.rotations=room.rotations instanceof Uint8Array?room.rotations:Uint8Array.from(room.rotations||new Uint8Array(room.width*room.height));room.entities=(room.entities||[]).map(e=>({...e,flags:e.flags??0}));}}
+  raw.version=4;raw.activeLevel=Math.min(raw.activeLevel||0,raw.levels.length-1);raw.activeRoom=Math.min(raw.activeRoom||0,raw.levels[raw.activeLevel].rooms.length-1);return raw;
 }
 function snapshot(){return serializableProject();}
 function pushHistory(){history.push(snapshot());if(history.length>100)history.shift();future=[];updateUndoButtons();}
@@ -181,7 +174,7 @@ function renderLists(){
 }
 function moveLevel(i,d){const n=i+d;if(n<0||n>=project.levels.length)return;pushHistory();[project.levels[i],project.levels[n]]=[project.levels[n],project.levels[i]];project.activeLevel=n;commit();renderAll();}
 
-function selectPiece(id,flags=0){selected=id;placementFlags=flags;specialMode=paletteById.get(id)?.special||null;if(!specialMode)tool='pencil';renderPalette();renderInspector();updateToolButtons();}
+function selectPiece(id,flags=0,rotation=null){selected=id;placementFlags=flags&ENTITY_FLAG_MASK;placementRotation=rotation==null?((flags&ENTITY_ROTATION_MASK)>>ENTITY_ROTATION_SHIFT):(rotation&3);specialMode=paletteById.get(id)?.special||null;if(!specialMode)tool='pencil';renderPalette();renderInspector();updateToolButtons();}
 function renderPalette(){
   const filter=($('paletteSearch').value||'').trim().toLowerCase(),category=$('paletteCategory').value;
   $('palette').innerHTML='';
@@ -196,7 +189,7 @@ function renderPalette(){
 function renderInspector(){
   const item=paletteById.get(selected)||{name:`Tile ${selected}`,description:'Imported PICO-8 tile.',category:'Unknown'};
   $('pieceName').textContent=item.name;$('pieceMeta').textContent=`${item.category} · ID ${item.id}`;$('pieceDescription').textContent=item.description||'';
-  const canRotate=rotateId(selected,true)!==selected;$('rotateCW').disabled=!canRotate;$('rotateCCW').disabled=!canRotate;
+  const canRotate=selected!==0&&specialMode!=='spawn';$('rotateCW').disabled=!canRotate;$('rotateCCW').disabled=!canRotate;$('pieceMeta').textContent=`${item.category} · ID ${item.id} · ${placementRotation*90}°`; 
   const opts=$('pieceOptions');opts.innerHTML='';
   if(item.options==='strawberry'){
     const label=document.createElement('label');label.className='option-row';const cb=document.createElement('input');cb.type='checkbox';cb.checked=(placementFlags&1)===0;cb.onchange=()=>{placementFlags=cb.checked?(placementFlags&~1):(placementFlags|1);};label.append(cb,document.createTextNode(' Contains a strawberry'));opts.append(label);
@@ -204,7 +197,7 @@ function renderInspector(){
     const label=document.createElement('label');label.textContent='Dash upgrade';const sel=document.createElement('select');sel.innerHTML='<option value="2">2 dashes</option><option value="3">3 dashes</option>';sel.value=(placementFlags&2)?'3':'2';sel.onchange=()=>{placementFlags=sel.value==='3'?(placementFlags|2):(placementFlags&~2);};label.append(sel);opts.append(label);
   }
 }
-function rotateSelected(clockwise=true){const next=rotateId(selected,clockwise);if(next===selected)return;selected=next;specialMode=paletteById.get(next)?.special||null;renderPalette();renderInspector();}
+function rotateSelected(clockwise=true){if(selected===0||specialMode==='spawn')return;placementRotation=(placementRotation+(clockwise?1:3))&3;renderPalette();renderInspector();drawEditor();$('cursorStatus').textContent=`Placement rotation ${placementRotation*90}°`;}
 function updateToolButtons(){for(const b of document.querySelectorAll('[data-tool]'))b.classList.toggle('active',b.dataset.tool===tool&&!specialMode);}
 function resizeCanvas(){const z=Number($('zoom').value);canvas.width=128*z;canvas.height=128*z;canvas.style.width=`${128*z}px`;canvas.style.height=`${128*z}px`;ctx.imageSmoothingEnabled=false;}
 function tileColor(id){return paletteById.get(id)?.color||`hsl(${(id*47)%360} 35% 48%)`;}
@@ -220,8 +213,8 @@ function footprintsOverlap(a,b){return a.some(p=>b.some(q=>p.x===q.x&&p.y===q.y)
 function entityAtCell(room,x,y){return(room.entities||[]).find(e=>entityFootprint(e).some(p=>p.x===x&&p.y===y));}
 function drawEditor(){
   const room=currentRoom(),scale=Number($('zoom').value),cell=TILE_SIZE*scale;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);
-  for(let y=0;y<16;y++)for(let x=0;x<16;x++){const id=room.tiles[y*16+x];if(!id)continue;if(!drawPicoSprite(ctx,id,x*cell,y*cell,cell)){ctx.fillStyle=tileColor(id);ctx.fillRect(x*cell,y*cell,cell,cell);}}
-  for(const e of room.entities||[])drawLogicalPiece(ctx,e.type,e.x*cell,e.y*cell,cell);
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){const id=room.tiles[y*16+x];if(!id)continue;if(!drawPicoSprite(ctx,id,x*cell,y*cell,cell,false,false,1,room.rotations?.[y*16+x]||0)){ctx.fillStyle=tileColor(id);ctx.fillRect(x*cell,y*cell,cell,cell);}}
+  for(const e of room.entities||[])drawLogicalPiece(ctx,e.type,e.x*cell,e.y*cell,cell,1,entityRotation(e));
   drawPicoSprite(ctx,1,room.spawnX*cell,room.spawnY*cell,cell,false,false,.72);
   ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--border');ctx.lineWidth=1;for(let i=0;i<=16;i++){ctx.beginPath();ctx.moveTo(i*cell+.5,0);ctx.lineTo(i*cell+.5,canvas.height);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*cell+.5);ctx.lineTo(canvas.width,i*cell+.5);ctx.stroke();}
 }
@@ -231,17 +224,17 @@ function applyAt(x,y,index,forceErase=false){
   if(specialMode==='spawn'){room.spawnX=x;room.spawnY=y;specialMode=null;renderPalette();renderInspector();return true;}
   const effective=forceErase?'eraser':tool;
   if(effective==='eyedropper'){
-    const e=entityAtCell(room,x,y);if(e)selectPiece(e.type,e.flags||0);else selectPiece(room.tiles[index]||0,0);tool='pencil';updateToolButtons();return false;
+    const e=entityAtCell(room,x,y);if(e)selectPiece(e.type,e.flags||0,entityRotation(e));else selectPiece(room.tiles[index]||0,0,room.rotations?.[index]||0);tool='pencil';updateToolButtons();return false;
   }
-  if(effective==='eraser'||selected===0){const e=entityAtCell(room,x,y);if(e){room.entities=room.entities.filter(v=>v!==e);return true;}if(room.tiles[index]!==0){room.tiles[index]=0;return true;}return false;}
+  if(effective==='eraser'||selected===0){const e=entityAtCell(room,x,y);if(e){room.entities=room.entities.filter(v=>v!==e);return true;}if(room.tiles[index]!==0){room.tiles[index]=0;if(room.rotations)room.rotations[index]=0;return true;}return false;}
   if(effective==='fill'){
-    if(ENTITY_TYPES.has(selected)||specialMode)return false;const from=room.tiles[index],to=selected;if(from===to)return false;const q=[index],seen=new Set(q);while(q.length){const p=q.pop();room.tiles[p]=to;const px=p%16,py=Math.floor(p/16);for(const [nx,ny] of [[px-1,py],[px+1,py],[px,py-1],[px,py+1]])if(nx>=0&&nx<16&&ny>=0&&ny<16){const ni=ny*16+nx;if(!seen.has(ni)&&room.tiles[ni]===from){seen.add(ni);q.push(ni);}}}return true;
+    if(ENTITY_TYPES.has(selected)||specialMode)return false;const from=room.tiles[index],fromRot=room.rotations?.[index]||0,to=selected;if(from===to&&fromRot===placementRotation)return false;const q=[index],seen=new Set(q);while(q.length){const p=q.pop();room.tiles[p]=to;room.rotations[p]=placementRotation;const px=p%16,py=Math.floor(p/16);for(const [nx,ny] of [[px-1,py],[px+1,py],[px,py-1],[px,py+1]])if(nx>=0&&nx<16&&ny>=0&&ny<16){const ni=ny*16+nx;if(!seen.has(ni)&&room.tiles[ni]===from&&(room.rotations?.[ni]||0)===fromRot){seen.add(ni);q.push(ni);}}}return true;
   }
   if(ENTITY_TYPES.has(selected)){
-    const next={type:selected,x,y,flags:placementFlags};const fp=entityFootprint(next);if(!footprintInBounds(fp)){$('cursorStatus').textContent='Piece does not fit at this edge';return false;}
-    room.entities=(room.entities||[]).filter(e=>!footprintsOverlap(entityFootprint(e),fp));for(const p of fp)room.tiles[p.y*16+p.x]=0;room.entities.push(next);return true;
+    const next={type:selected,x,y,flags:(placementFlags&ENTITY_FLAG_MASK)|((placementRotation&3)<<ENTITY_ROTATION_SHIFT)};const fp=entityFootprint(next);if(!footprintInBounds(fp)){$('cursorStatus').textContent='Piece does not fit at this edge';return false;}
+    room.entities=(room.entities||[]).filter(e=>!footprintsOverlap(entityFootprint(e),fp));for(const p of fp){room.tiles[p.y*16+p.x]=0;room.rotations[p.y*16+p.x]=0;}room.entities.push(next);return true;
   }
-  const overlapped=entityAtCell(room,x,y);if(overlapped)room.entities=room.entities.filter(e=>e!==overlapped);if(room.tiles[index]===selected)return false;room.tiles[index]=selected;return true;
+  const overlapped=entityAtCell(room,x,y);if(overlapped)room.entities=room.entities.filter(e=>e!==overlapped);if(room.tiles[index]===selected&&(room.rotations?.[index]||0)===placementRotation)return false;room.tiles[index]=selected;room.rotations[index]=placementRotation;return true;
 }
 
 canvas.addEventListener('pointerdown',e=>{e.preventDefault();pointerDown=true;lastCell=-1;pushHistory();const c=cellAt(e);if(applyAt(c.x,c.y,c.index,e.button===2)){drawEditor();commit();}lastCell=c.index;canvas.setPointerCapture(e.pointerId);});
@@ -256,7 +249,7 @@ $('undo').onclick=undo;$('redo').onclick=redo;$('rotateCW').onclick=()=>rotateSe
 $('setSpawn').onclick=()=>selectPiece(1,0);
 $('addLevel').onclick=()=>{pushHistory();project.levels.push(blankLevel(project.levels.length+1));project.activeLevel=project.levels.length-1;project.activeRoom=0;commit();renderAll();};
 $('addRoom').onclick=()=>{pushHistory();currentLevel().rooms.push(blankRoom());project.activeRoom=currentLevel().rooms.length-1;commit();renderAll();};
-$('duplicateRoom').onclick=()=>{pushHistory();const r=currentRoom();const copy={...structuredClone(r),id:idFor('room-copy'),tiles:r.tiles.slice()};currentLevel().rooms.splice(project.activeRoom+1,0,copy);project.activeRoom++;commit();renderAll();};
+$('duplicateRoom').onclick=()=>{pushHistory();const r=currentRoom();const copy={...structuredClone(r),id:idFor('room-copy'),tiles:r.tiles.slice(),rotations:r.rotations.slice()};currentLevel().rooms.splice(project.activeRoom+1,0,copy);project.activeRoom++;commit();renderAll();};
 $('deleteRoom').onclick=()=>{if(currentLevel().rooms.length===1)return showMessage('Cannot delete room','Every level must contain at least one room.');pushHistory();currentLevel().rooms.splice(project.activeRoom,1);project.activeRoom=Math.max(0,project.activeRoom-1);commit();renderAll();};
 function moveRoom(d){const rooms=currentLevel().rooms,i=project.activeRoom,n=i+d;if(n<0||n>=rooms.length)return;pushHistory();[rooms[i],rooms[n]]=[rooms[n],rooms[i]];project.activeRoom=n;commit();renderAll();}
 $('moveRoomUp').onclick=()=>moveRoom(-1);$('moveRoomDown').onclick=()=>moveRoom(1);
@@ -328,7 +321,7 @@ function entityColliderAt(x,y,w,h,oy=0){
 function solidAt(room,x,y,w,h,oy=0){return tileFlagAt(room,x,y,w,h,0)||!!entityColliderAt(x,y,w,h,oy);}
 function iceAt(room,x,y,w,h){return tileFlagAt(room,x,y,w,h,4);}
 function playerSolid(room,ox,oy){return solidAt(room,preview.x+1+ox,preview.y+3+oy,6,5,oy);}
-function spikesAt(room,x,y,w,h,xspd,yspd){const x0=Math.max(0,Math.floor(x/8)),x1=Math.min(15,Math.floor((x+w-1)/8)),y0=Math.max(0,Math.floor(y/8)),y1=Math.min(15,Math.floor((y+h-1)/8));for(let i=x0;i<=x1;i++)for(let j=y0;j<=y1;j++){const tile=tileAt(room,i,j);if(tile===17&&(((y+h-1)%8)>=6||y+h===j*8+8)&&yspd>=0)return true;if(tile===27&&y%8<=2&&yspd<=0)return true;if(tile===43&&x%8<=2&&xspd<=0)return true;if(tile===59&&(((x+w-1)%8)>=6||x+w===i*8+8)&&xspd>=0)return true;}return false;}
+function spikesAt(room,x,y,w,h,xspd,yspd){const x0=Math.max(0,Math.floor(x/8)),x1=Math.min(15,Math.floor((x+w-1)/8)),y0=Math.max(0,Math.floor(y/8)),y1=Math.min(15,Math.floor((y+h-1)/8));for(let i=x0;i<=x1;i++)for(let j=y0;j<=y1;j++){let tile=tileAt(room,i,j);const rot=room.rotations?.[j*16+i]||0;let dir=tile===17?0:tile===59?1:tile===27?2:tile===43?3:-1;if(dir>=0){dir=(dir+rot)&3;tile=dir===0?17:dir===1?59:dir===2?27:43;}if(tile===17&&(((y+h-1)%8)>=6||y+h===j*8+8)&&yspd>=0)return true;if(tile===27&&y%8<=2&&yspd<=0)return true;if(tile===43&&x%8<=2&&xspd<=0)return true;if(tile===59&&(((x+w-1)%8)>=6||x+w===i*8+8)&&xspd>=0)return true;}return false;}
 function spawnPreviewFruit(x,y,source){preview.entities.push({type:26,x:Math.floor(x/8),y:Math.floor(y/8),flags:0,_source:source,px:x,py:y,alive:true,timer:0,state:0,vy:0});}
 function breakFakeWall(e){if(!e?.alive)return;e.alive=false;preview.vx=-sign(preview.vx)*1.5;preview.vy=-1.5;preview.dashTime=-1;if((e.flags&1)===0)spawnPreviewFruit(e.px+4,e.py+4,e._source);}
 function movePreviewX(room,amount){preview.remX+=amount;let pixels=Math.floor(preview.remX+.5);preview.remX-=pixels;const step=sign(pixels);for(let i=0;i<Math.abs(pixels);i++){const nx=preview.x+1+step,ny=preview.y+3;if(tileFlagAt(room,nx,ny,6,5,0)){preview.vx=0;preview.remX=0;break;}const hit=entityColliderAt(nx,ny,6,5,0);if(hit){if(hit.type===64&&preview.dashEffectTime>0)breakFakeWall(hit);preview.vx=0;preview.remX=0;break;}preview.x+=step;}}
@@ -373,10 +366,10 @@ function drawPreviewEntity(e){
   if(e.type===102){drawPicoSprite(pctx,102,e.px*scale,e.py*scale,32);return;}
   if(e.type===18&&e.timer>0){drawPicoSprite(pctx,19,e.px*scale,e.py*scale,32);return;}
   if(e.type===20&&e.state===1){drawPicoSprite(pctx,20,e.px*scale,e.py*scale,32);return;}
-  drawLogicalPiece(pctx,e.type,e.px*scale,e.py*scale,32);
+  drawLogicalPiece(pctx,e.type,e.px*scale,e.py*scale,32,1,entityRotation(e));
 }
 function drawPreview(room){
-  pctx.imageSmoothingEnabled=false;pctx.fillStyle='#000';pctx.fillRect(0,0,512,512);for(let y=0;y<16;y++)for(let x=0;x<16;x++){const id=room.tiles[y*16+x];if(id&&!drawPicoSprite(pctx,id,x*32,y*32,32)){pctx.fillStyle=tileColor(id);pctx.fillRect(x*32,y*32,32,32);}}
+  pctx.imageSmoothingEnabled=false;pctx.fillStyle='#000';pctx.fillRect(0,0,512,512);for(let y=0;y<16;y++)for(let x=0;x<16;x++){const id=room.tiles[y*16+x];if(id&&!drawPicoSprite(pctx,id,x*32,y*32,32,false,false,1,room.rotations?.[y*16+x]||0)){pctx.fillStyle=tileColor(id);pctx.fillRect(x*32,y*32,32,32);}}
   for(const e of preview.entities||[])drawPreviewEntity(e);if(!preview.deadFrames)drawPicoSprite(pctx,preview.sprite,preview.x*4,preview.y*4,32,preview.flipX,false);if(preview.deadFrames){pctx.fillStyle='rgba(255,0,77,.22)';pctx.fillRect(0,0,512,512);}
   $('previewStatus').textContent=preview.won?'Level complete!':`Room ${preview.room+1}/${currentLevel().rooms.length} · ${preview.djump}/${preview.maxDashes} dash${preview.maxDashes===1?'':'es'} · key ${preview.hasKey?'yes':'no'} · PICO-8 @ 30 Hz`;
 }
