@@ -59,25 +59,42 @@ Each strawberry-producing entity is treated as its own collectible source. A roo
 
 The summit flag is an optional summit/results object. It does not complete ordinary custom rooms. Rooms advance only when Madeline exits through the top edge, matching Celeste Classic.
 
-## Run
+## Local development
+
+Node.js is useful for the automated test suite and the convenience local server only:
 
 ```sh
 npm test
 npm run serve
 ```
 
-The app is static and can be hosted from any ordinary web server. Browsers block some module features when opening `index.html` directly with `file://`, so local HTTP hosting is recommended.
+Node.js is **not** required on the production web host.
+
+## Public production hosting
+
+CEleste Studio is a static web application and is designed to run on ordinary Apache/cPanel shared hosting, including GoDaddy Web Hosting plans where Node.js is unavailable.
+
+A live deployment only needs:
+
+```text
+.htaccess
+index.html
+app.js
+styles.css
+robots.txt
+assets/pico8-atlas.png
+lib/format.mjs
+```
+
+There is no production build command. Upload those files while preserving the `assets/` and `lib/` directories and the editor runs entirely in the visitor's browser. The included `.htaccess` provides the `.mjs` MIME type and conservative cache rules for shared Apache hosting.
+
+See [`HOSTING-GODADDY.md`](HOSTING-GODADDY.md) for the exact cPanel deployment layout and checklist.
+
+Because the application is client-side JavaScript, any files served to a public visitor can also be downloaded/read by that visitor even if this Git repository itself remains private.
 
 ## Release
 
 Current release: **1.0.0**.
-
-## Pricing target
-
-- Launch: $0.99 one time
-- Standard: $1.99 one time
-
-Bug fixes and minor updates should remain free.
 
 ## Disclaimer
 
@@ -85,8 +102,8 @@ Unofficial community software. Not affiliated with or endorsed by Extremely OK G
 
 ## Repository status
 
-This repository is private because CEleste Studio is intended to be paid software. Do not make the repository public or copy its proprietary Studio source into the public CEleste repository. The shared `CELV` compatibility specification and calculator runtime remain in `Lord-Funion/CEleste`.
+The repository can remain private while the browser application is hosted publicly. The shared `CELV` compatibility specification and calculator runtime remain in `Lord-Funion/CEleste`.
 
 ## License
 
-Proprietary and confidential. See `LICENSE`.
+Proprietary. See `LICENSE`.
