@@ -1,0 +1,29 @@
+name: Apply Studio rotation v2 patch
+
+on:
+  push:
+    branches: [agent/arbitrary-rotation-v2]
+    paths:
+      - tools/apply_rotation_v2.py
+      - .github/workflows/apply-rotation-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/arbitrary-rotation-v2
+      - run: python3 tools/apply_rotation_v2.py
+      - name: Commit generated source changes
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          if git diff --quiet; then exit 0; fi
+          git add app.js interaction-fix.js index.html lib/format.mjs tests/format.test.mjs
+          git commit -m "Implement arbitrary quarter-turn editing"
+          git push origin HEAD:agent/arbitrary-rotation-v2
