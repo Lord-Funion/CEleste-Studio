@@ -1,30 +1,35 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {patchOriginalCelesteCart} from '../lib/pico8-cart.mjs';
+import {patchOriginalCelesteCart,privatePreviewWarnings} from '../lib/pico8-cart.mjs';
+import {minimalCelesteCart,samplePrivateLevel} from './minimal-celeste-fixture.mjs';
 
-function fakeCelesteCart(){
-  const lua=[
-    'types={}','objects={}','$={}','room={x=0,y=0}','k_jump=4','k_dash=5','k_up=2','k_down=3',
-    'player={update=function(this) end}','chest={tile=20}','function load_room(x,y) room.x=x room.y=y end',
-    'function next_room() end','function draw_object(o) end','function level_index() return room.x+room.y*8 end',
-    'function _init() end','function _update() end','function _draw() end'
-  ].join('\n');
-  const gfx=Array.from({length:128},()=> '0'.repeat(128)).join('\n');
-  const gff='0'.repeat(256)+'\n'+'0'.repeat(256);
-  const map=Array.from({length:32},()=> '00'.repeat(128)).join('\n');
-  return ['pico-8 cartridge // http://www.pico-8.com','version 42','__lua__',lua,'__gfx__',gfx,'__gff__',gff,'__map__',map,''].join('\n');
-}
-
-test('patches Studio rooms into a user-owned Celeste cart without replacing its game code',()=>{
-  const tiles=new Uint8Array(256);tiles[15*16+2]=37;tiles[14*16+5]=17;
-  const rotations=new Uint8Array(256);rotations[14*16+5]=1;
-  const level={title:'Private',rooms:[{width:16,height:16,spawnX:2,spawnY:13,tiles,rotations,entities:[{type:20,x:7,y:13,flags:0x40},{type:129,x:9,y:13,flags:0}]}]};
-  const out=patchOriginalCelesteCart(fakeCelesteCart(),level);
-  assert.match(out,/player=\{update=function\(this\) end\}/,'original player code remains in the cart');
-  assert.match(out,/celeste studio private patch/);
+test('patches Studio rooms into a user-owned Celeste cart without replacing player physics',()=>{
+  const base=minimalCelesteCart();
+  const level=samplePrivateLevel();
+  const out=patchOriginalCelesteCart(base,level);
+  assert.match(out,/player=\{tile=1,update=function\(this\) end\}/,'the original player implementation remains in the cart');
+  assert.match(out,/celeste studio private original-cart patch/);
   assert.match(out,/climb_chest=\{tile=129/);
+  assert.match(out,/studio_old_player_update=player\.update/);
+  assert.match(out,/function studio_map/,'the original map renderer calls are redirected to the rotation-aware renderer');
+  assert.doesNotMatch(out,/\bmap\(room\.x\*16/,'old map draw calls should be patched');
+
   const map=out.split('__map__\n')[1].trim().split('\n');
   assert.equal(map.length,32);
   assert.equal(map[13].slice(4,6),'01','Studio spawn becomes original cart spawn tile 1');
-  assert.equal(map[14].slice(10,12),'3b','90-degree up-spike rotation maps to original right-spike tile 59');
+  assert.equal(map[14].slice(10,12),'3b','90-degree up-spike rotation uses right-spike tile 59 for collision');
+  assert.equal(map[13].slice(14,16),'14','chest stays an original Celeste chest tile');
+  assert.equal(map[13].slice(18,20),'81','Climb Chest uses logical map entity 129');
+});
+
+test('private preview warns only about rotated compound entity animations that cannot be losslessly redirected',()=>{
+  const level=samplePrivateLevel();
+  level.rooms[0].entities.push({type:96,x:10,y:13,flags:0x40});
+  const warnings=privatePreviewWarnings(level);
+  assert.equal(warnings.length,1);
+  assert.match(warnings[0],/entity 96/);
+});
+
+test('rejects unrelated PICO-8 carts instead of silently running wrong physics',()=>{
+  assert.throws(()=>patchOriginalCelesteCart('pico-8 cartridge // http://www.pico-8.com\nversion 42\n__lua__\nfunction _init() end\n__gfx__\n00\n__gff__\n00\n__map__\n00\n',samplePrivateLevel()),/compatible Celeste|incomplete/);
 });
