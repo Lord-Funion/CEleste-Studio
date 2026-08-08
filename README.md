@@ -1,125 +1,117 @@
-# CEleste Studio 1.0.0
+# CEleste Studio 1.0.0 — private production build
 
-CEleste Studio is a dependency-free static browser editor for custom levels and packs used by the TI-84 Plus CE CEleste port.
-https://lordfunion.dev/CEleste-Studio/
+CEleste Studio is a static browser editor for CEleste custom levels and packs on the TI-84 Plus CE.
 
-## Features
+This build is designed primarily for **private/local use**. It remains deployable unchanged to ordinary static Apache/cPanel hosting such as GoDaddy Web Hosting if that becomes desirable later.
+
+## What is different about Preview
+
+Studio no longer contains a hand-written substitute for Celeste Classic player physics.
+
+The private preview path works like this:
+
+1. Unlock Studio with the JavaScript password gate.
+2. Choose your own text-format original Celeste Classic `celeste.p8` using **Set original Celeste .p8**.
+3. The browser validates it as a compatible Celeste cart and stores it only in that browser's IndexedDB.
+4. When Preview is opened, Studio clones that browser-local cart in memory, replaces its map with the current Studio level, and appends the minimum custom-level glue required by CEleste features.
+5. The resulting private modified cart runs in Fake-08 WebAssembly.
+
+The original cart is **never included in this repository, the CI artifacts, the local ZIP, or the GoDaddy ZIP**, and it is never uploaded by Studio.
+
+Before a Climb Chest changes movement, Madeline's normal movement/jump/dash/wall-jump code executes from the supplied original cartridge. The Studio patch layers custom level behavior around it rather than replacing the player implementation.
+
+## Private preview additions
+
+The original-cart patch supports:
+
+- Studio's ordered 16×16 rooms, packed into the original PICO-8 8×4 room map;
+- original Celeste room transitions and death/restart behavior;
+- arbitrary rotated terrain drawing, while directional spike collision uses the matching original spike direction;
+- real entity flags from CELV;
+- strawberry/empty locked chests;
+- strawberry/empty fake walls;
+- 2-dash and 3-dash big-chest behavior;
+- per-source strawberry persistence instead of the original room-wide suppression rule;
+- Climb Chest entity 129 and the custom grab/stamina mechanic;
+- simple-sprite entity rotation, including ordinary locked chests;
+- level completion after the final Studio room.
+
+Some original Celeste entities are multi-sprite/custom-draw animations. If one of those is given an arbitrary rotation that cannot be losslessly inserted into the original cart's animation routine, Preview reports a warning; the CELV/calculator export still retains its full rotation value.
+
+## Editor features
 
 - Multiple levels and ordered packs
-- Multiple 16×16 rooms per level
-- Real Celeste Classic/PICO-8 sprite atlas in the grid, palette, entities, and preview
-- Complete logical gameplay pieces instead of loose sprite fragments
-  - 16×16 fake walls
-  - 16×16 big/dash-upgrade chests
-  - complete memorial signs
-  - complete moving platforms
-  - flying strawberries with wings
-  - dash balloons with their companion art
-- Every standalone original Celeste Classic map-tile family exposed through searchable categories
-- Arbitrary 0°/90°/180°/270° CELV graphics rotation reproduced by the calculator and emulator preview
-- Key and locked-chest puzzles
-- Locked chests can contain strawberries
-- Fake walls can contain strawberries
-- Multiple direct/chest/fake-wall strawberry sources persist independently across deaths and restarts
-- Big chests can upgrade Madeline to two or three dashes
-- Climb Chest power-up: touch it to unlock `MATH` wall-grab/climbing with a 110-point stamina system for the rest of the level
-- Falling floors, springs, balloons, normal/flying strawberries, keys, chests, fake walls, moving platforms, memorials, big chests, and summit flags
-- Real PICO-8 cartridge preview executed by Fake-08 WebAssembly; Studio generates the current level into a cart so browser JavaScript does not reimplement player physics or collision
-- Pencil, eraser, flood fill, and eyedropper
-- Player spawn placement; rooms complete by exiting through the top edge
-- 100-step undo/redo history
-- Browser autosave and crash recovery
-- Editable `.celproj` project backups
-- Import of single-level or pack `.8xv` AppVars
-- Export of valid archived `.8xv` AppVars
-- Entity option flags preserved through CELV and `.8xv` import/export
-- Compound-piece footprint and overlap validation
-- Independent TI checksum and `CELV` CRC32 validation
-- Light and dark themes
-- No server upload, account, telemetry, ads, subscription, or online DRM
+- Up to 32 rooms per level
+- Full 16×16 room editor
+- Complete logical gameplay pieces rather than loose compound fragments
+- Arbitrary 0°/90°/180°/270° CELV rotation
+- Pencil, eraser, fill, eyedropper, undo/redo
+- Chest, fake-wall, big-chest and Climb Chest properties
+- Browser autosave and `.celproj` project files
+- Import/export of CELV `.8xv` AppVars
+- Validation of room/entity limits and AppVar data
+- Static-site operation: no server application, database, PHP, or Node runtime required
 
-## Sprite source
+## Run privately on your computer
 
-`assets/pico8-atlas.png` is synchronized with the sprite atlas used by the public `Lord-Funion/CEleste` calculator port. Studio and the calculator editor therefore render the same 8×8 source art.
+The production local package includes `serve-local.py` and **Start Private Studio.bat**.
 
-Animation/helper frames that only exist as runtime states are not exposed as fake standalone level pieces. Multi-sprite gameplay objects are deliberately folded into one logical editor piece so exported levels behave like the game rather than requiring authors to assemble internal sprite fragments manually.
+On Windows, double-click:
 
-## Rotation
+```text
+Start Private Studio.bat
+```
 
-Press `R` to rotate the selected piece clockwise or `Shift+R` to rotate counter-clockwise. The inspector also has rotation buttons.
+It binds only to `127.0.0.1`, opens Studio in the default browser, and does not expose the editor to other computers on the network.
 
-CELV stores rotation independently from sprite ID. Studio, the calculator runtime, and the emulator preview all preserve the same 0°, 90°, 180°, and 270° values. Rotation therefore does not require a separate counterpart sprite to exist.
+Or run:
 
-## Gameplay properties
+```sh
+python serve-local.py
+```
 
-When a locked chest or fake wall is selected, its inspector lets you choose whether it contains a strawberry. When a big chest is selected, choose whether its orb upgrades Madeline to two or three dashes. These options are stored in the CELV entity `flags` byte and are consumed by the calculator runtime.
+ES modules, IndexedDB, WebAssembly, and the password hash work correctly through localhost. Do not open `index.html` directly with `file://`.
 
-Each strawberry-producing entity is treated as its own collectible source. A room can therefore contain several normal/flying strawberries plus strawberry chests and strawberry fake walls; collecting one source does not make the others disappear after a death or restart. Keys remain available while a locked chest in the room still needs to be opened.
+## JavaScript password gate
 
-The summit flag is an optional summit/results object. It does not complete ordinary custom rooms. Rooms advance only when Madeline exits through the top edge, matching Celeste Classic.
+`private-gate.js` defines:
 
-## Real PICO-8 preview
+```js
+window.celestePrivatePassword(password)
+```
 
-The Preview button does not simulate Celeste physics in JavaScript. Studio generates a temporary `.p8` cartridge from the selected level and executes it in a PICO-8-compatible Fake-08 WebAssembly runtime. The cartridge uses the same Celeste atlas, tile flags, room data, gameplay entities, CEleste movement constants/order, arbitrary CELV rotations, and Climb Chest mechanics. JavaScript only generates the cartridge, forwards input, and displays the emulator framebuffer.
+The plaintext password is not stored in the repository; the file contains only its SHA-256 digest. The gate prevents the editor modules from loading until the function succeeds.
 
-The runtime is a clean implementation based on the MIT-licensed official Celeste Classic reference in `NoelFB/Celeste` plus the current CEleste custom-level behavior. The unlicensed Lexaloffle BBS Celeste cartridge is not redistributed by Studio. Fake-08 is fetched from a pinned upstream build by the deployment workflow; see `THIRD-PARTY-NOTICES.md`.
+This is deliberately a **client-side convenience/privacy gate**, not cryptographic server authentication. If this build is ever placed at a publicly reachable URL, someone who deliberately requests the static files can bypass a JavaScript-only gate. The original Celeste cart is still protected from that problem because it never exists on the web server.
 
-The generated cart uses PICO-8's real 128×64 tile map. All 32 CELV rooms fit as an 8×4 room grid; PICO-8's shared lower sprite/map memory is encoded correctly for map rows 32–63. The browser preview runs at the cart's native 30 Hz update rate.
+To choose another password, generate a SHA-256 value locally:
 
-## Local development
+```sh
+node tools/hash-private-password.mjs "your new password"
+```
 
-Node.js is useful for the automated test suite and the convenience local server only:
+Then replace `EXPECTED_SHA256` in `private-gate.js` with that output.
+
+## Future GoDaddy compatibility
+
+The CI workflow also produces a static GoDaddy/cPanel ZIP. It contains only Studio, Fake-08, and the gate—never the Celeste cartridge. Uploading it requires no Node.js on the hosting account.
+
+See `HOSTING-GODADDY.md` for the future deployment layout and security caveat.
+
+## Testing
 
 ```sh
 npm test
-npm run serve
 ```
 
-The deploy workflow additionally downloads the pinned Fake-08 browser runtime and runs `npm run test:fake08`, which proves a generated Studio cart can be loaded and stepped by the actual WebAssembly VM.
+The deployment CI additionally downloads the pinned Fake-08 browser runtime and runs `npm run test:fake08`. That smoke test patches a synthetic Celeste-compatible cart through the same production code path, loads the resulting `.p8` into Fake-08, verifies 30 Hz execution, and steps frames. No original Celeste cartridge is used in CI.
 
-Node.js is **not** required on the production web host.
+## Third-party/runtime notice
 
-## Public production hosting
+Fake-08 is used as the PICO-8-compatible WebAssembly runtime and is pinned by commit in CI. See `THIRD-PARTY-NOTICES.md`.
 
-CEleste Studio is a static web application and is designed to run on ordinary Apache/cPanel shared hosting, including GoDaddy Web Hosting plans where Node.js is unavailable.
-
-The ready-to-upload CI artifact contains:
-
-```text
-.htaccess
-index.html
-app.js
-interaction-fix.js
-styles.css
-robots.txt
-THIRD-PARTY-NOTICES.md
-assets/pico8-atlas.png
-lib/format.mjs
-lib/pico8-cart.mjs
-lib/pico8-preview.mjs
-preview-runtime/celeste-preview.lua
-preview-runtime/fake08.js
-preview-runtime/fake08.wasm
-```
-
-There is no production build command on the server. Upload the generated `CEleste-Studio-GoDaddy-Upload.zip` contents while preserving the directories. The included `.htaccess` provides the `.mjs` and WebAssembly MIME types and appropriate cache rules for shared Apache hosting.
-
-See [`HOSTING-GODADDY.md`](HOSTING-GODADDY.md) for the exact cPanel deployment layout and checklist.
-
-Because the application is client-side JavaScript/WebAssembly, any files served to a public visitor can also be downloaded/read by that visitor even if this Git repository itself remains private.
-
-## Release
-
-Current release: **1.0.0**.
+The original Celeste Classic cartridge is user-supplied and browser-local. Studio does not redistribute it.
 
 ## Disclaimer
 
-Unofficial community software. Not affiliated with or endorsed by Extremely OK Games, Maddy Thorson, Noel Berry, Texas Instruments, Lexaloffle, Fake-08, or the CE Programming Toolchain developers.
-
-## Repository status
-
-The repository can remain private while the browser application is hosted publicly. The shared `CELV` compatibility specification and calculator runtime remain in `Lord-Funion/CEleste`.
-
-## License
-
-Proprietary. See `LICENSE`.
+Unofficial community software. Not affiliated with or endorsed by Extremely OK Games, Maddy Thorson, Noel Berry, Lexaloffle, Texas Instruments, Fake-08, or the CE Programming Toolchain developers.
