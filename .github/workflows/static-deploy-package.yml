@@ -1,4 +1,4 @@
-name: Static deploy package
+name: Private production packages
 
 on:
   push:
@@ -16,8 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify Studio source runtime files
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify production sources
         run: |
+          set -euxo pipefail
           test -f .htaccess
           test -f index.html
           test -f private-gate.js
@@ -25,12 +30,17 @@ jobs:
           test -f interaction-fix.js
           test -f styles.css
           test -f robots.txt
+          test -f serve-local.py
+          test -f "Start Private Studio.bat"
           test -f lib/format.mjs
           test -f lib/private-cart.mjs
           test -f lib/pico8-cart.mjs
           test -f lib/pico8-preview.mjs
           test -f assets/pico8-atlas.png
           test -f THIRD-PARTY-NOTICES.md
+          ! find . -type f -iname '*.p8' -o -iname '*.p8.png' | grep -q .
+          ! grep -RIl --exclude='*.md' --exclude='*.test.mjs' 'celeste-preview.lua' . | grep -q .
+
       - name: Download pinned Fake-08 WebAssembly runtime
         run: |
           set -euxo pipefail
@@ -40,23 +50,37 @@ jobs:
           curl -fL --retry 5 --retry-delay 2 "$base/fake08.wasm" -o preview-runtime/fake08.wasm
           test -s preview-runtime/fake08.js
           test -s preview-runtime/fake08.wasm
-      - name: Run Studio tests
+
+      - name: Run Studio unit tests
         run: npm test
-      - name: Prove Fake-08 loads and steps a PICO-8 cart
+
+      - name: Prove the production original-cart patch loads in Fake-08
         run: npm run test:fake08
-      - name: Build GoDaddy upload ZIP
+
+      - name: Build production packages
         run: |
-          zip -9 CEleste-Studio-GoDaddy-Upload.zip \
-            .htaccess index.html private-gate.js app.js interaction-fix.js styles.css robots.txt \
-            lib/format.mjs lib/private-cart.mjs lib/pico8-cart.mjs lib/pico8-preview.mjs \
-            assets/pico8-atlas.png preview-runtime/fake08.js preview-runtime/fake08.wasm \
+          set -euxo pipefail
+          runtime=(
+            .htaccess index.html private-gate.js app.js interaction-fix.js styles.css robots.txt
+            lib/format.mjs lib/private-cart.mjs lib/pico8-cart.mjs lib/pico8-preview.mjs
+            assets/pico8-atlas.png preview-runtime/fake08.js preview-runtime/fake08.wasm
             THIRD-PARTY-NOTICES.md
-          unzip -l CEleste-Studio-GoDaddy-Upload.zip
-          sha256sum CEleste-Studio-GoDaddy-Upload.zip > CEleste-Studio-GoDaddy-Upload.sha256
+          )
+          zip -9 CEleste-Studio-Private-GoDaddy.zip "${runtime[@]}" HOSTING-GODADDY.md PRIVATE-PREVIEW.md
+          zip -9 CEleste-Studio-Private-Local.zip "${runtime[@]}" serve-local.py "Start Private Studio.bat" README.md PRIVATE-PREVIEW.md
+          sha256sum CEleste-Studio-Private-GoDaddy.zip > CEleste-Studio-Private-GoDaddy.sha256
+          sha256sum CEleste-Studio-Private-Local.zip > CEleste-Studio-Private-Local.sha256
+          unzip -l CEleste-Studio-Private-GoDaddy.zip
+          unzip -l CEleste-Studio-Private-Local.zip
+          ! unzip -l CEleste-Studio-Private-GoDaddy.zip | grep -Ei '\.p8(\.png)?$'
+          ! unzip -l CEleste-Studio-Private-Local.zip | grep -Ei '\.p8(\.png)?$'
+
       - uses: actions/upload-artifact@v4
         with:
-          name: CEleste-Studio-GoDaddy-Upload
+          name: CEleste-Studio-Private-Production
           path: |
-            CEleste-Studio-GoDaddy-Upload.zip
-            CEleste-Studio-GoDaddy-Upload.sha256
+            CEleste-Studio-Private-GoDaddy.zip
+            CEleste-Studio-Private-GoDaddy.sha256
+            CEleste-Studio-Private-Local.zip
+            CEleste-Studio-Private-Local.sha256
           if-no-files-found: error
