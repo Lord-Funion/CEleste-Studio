@@ -83,7 +83,7 @@ changed |= replace('index.html',
 "<script type=\"module\" src=\"app.js?v=20260808-climb-chest\"></script>")
 
 changed |= replace('README.md',
-"- big chest orb 2/3 dash",
-"- big chest orb 2/3 dash\n- Climb Chest power-up with calculator `MATH` wall grab/climbing and 110-point stamina")
+"- Big chests can upgrade Madeline to two or three dashes\n",
+"- Big chests can upgrade Madeline to two or three dashes\n- Climb Chest power-up: touch it to unlock `MATH` wall-grab/climbing with a 110-point stamina system for the rest of the level\n")
 
 print('Applied Studio Climb Chest update.' if changed else 'Already applied.')
