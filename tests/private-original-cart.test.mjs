@@ -25,7 +25,6 @@ test('patches Studio rooms into a user-owned Celeste cart without replacing its 
   assert.match(out,/climb_chest=\{tile=129/);
   const map=out.split('__map__\n')[1].trim().split('\n');
   assert.equal(map.length,32);
-  const first=map[0];
-  assert.equal(first.slice((13*2)+2*2,(13*2)+2*2+2),'01','Studio spawn becomes original cart spawn tile 1');
-  assert.ok(out.includes('3b'),'90-degree up-spike rotation maps to original right-spike tile 59');
+  assert.equal(map[13].slice(4,6),'01','Studio spawn becomes original cart spawn tile 1');
+  assert.equal(map[14].slice(10,12),'3b','90-degree up-spike rotation maps to original right-spike tile 59');
 });
