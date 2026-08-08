@@ -1,16 +1,35 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" class="private-locked">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="CEleste Studio — create TI-84 Plus CE custom levels and export .8xv AppVars.">
-  <title>CEleste Studio</title>
+  <meta name="description" content="Private CEleste Studio — TI-84 Plus CE level and pack editor.">
+  <title>CEleste Studio — Private</title>
   <link rel="stylesheet" href="styles.css?v=20260808-viewport-fit">
+  <style>
+    .private-locked body>header,.private-locked body>main,.private-locked body>dialog{visibility:hidden!important}
+    #privateGate{position:fixed;inset:0;z-index:999999;background:#0b0911;color:#fff;display:grid;place-items:center;font:16px system-ui,sans-serif}
+    #privateGate .card{width:min(420px,calc(100vw - 32px));background:#1c1726;border:1px solid #4d3f62;border-radius:14px;padding:24px;box-shadow:0 20px 60px #0008}
+    #privateGate h1{margin:0 0 8px;font-size:24px}#privateGate p{color:#c8bdd8;line-height:1.45}
+    #privateGate input{box-sizing:border-box;width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid #66557d;background:#0d0a12;color:#fff;font-size:16px}
+    #privateGate button{width:100%;padding:12px;border:0;border-radius:8px;background:#b879ff;color:#100817;font-weight:800;cursor:pointer}
+    #privateGateError{min-height:1.3em;color:#ff7b91!important;margin-bottom:0}
+  </style>
 </head>
 <body>
+  <div id="privateGate">
+    <div class="card">
+      <h1>Private CEleste Studio</h1>
+      <p>This personal build is locked before the editor loads. The original Celeste cartridge is never stored on the server.</p>
+      <input id="privatePassword" type="password" autocomplete="current-password" placeholder="Password" aria-label="Private Studio password">
+      <button id="privateGateSubmit">Unlock Studio</button>
+      <p id="privateGateError"></p>
+    </div>
+  </div>
+
   <header class="topbar">
     <div>
-      <h1>CEleste Studio <span>1.0.0</span></h1>
+      <h1>CEleste Studio <span>1.0.0 private</span></h1>
       <p>TI-84 Plus CE level and pack editor</p>
     </div>
     <nav class="toolbar" aria-label="Project actions">
@@ -20,6 +39,7 @@
       <label class="button">Import .8xv<input id="import8xv" type="file" accept=".8xv" multiple hidden></label>
       <button id="exportLevel" class="primary">Export level .8xv</button>
       <button id="exportPack" class="primary">Export pack .8xv</button>
+      <button id="privateCartButton" title="Choose your own original Celeste Classic .p8 cart">Set original Celeste .p8</button>
       <button id="previewButton">Preview</button>
       <button id="themeButton" title="Toggle theme">◐</button>
     </nav>
@@ -86,8 +106,8 @@
         <div class="rotation-row"><button id="rotateCCW" title="Rotate counter-clockwise">↺ Rotate</button><button id="rotateCW" title="Rotate clockwise">Rotate ↻</button></div>
         <div id="pieceOptions"></div>
         <button id="setSpawn">Set player spawn</button>
-        <p class="hint">Press <kbd>R</kbd> to rotate clockwise, <kbd>Shift+R</kbd> for counter-clockwise. Rotation is stored independently, so any graphical piece can be turned 0°, 90°, 180°, or 270° and exported exactly to the calculator.</p>
-        <p class="hint">Fake walls, memorials, moving platforms, flying berries, balloons, and big chests are complete logical pieces — not loose sprite fragments.</p>
+        <p class="hint">Press <kbd>R</kbd> to rotate clockwise, <kbd>Shift+R</kbd> for counter-clockwise. Rotation is stored independently and exports exactly to the calculator.</p>
+        <p class="hint">The private preview runs your own original Celeste Classic .p8 cartridge. Normal Celeste movement therefore comes from the original game code, not Studio JavaScript.</p>
         <p class="hint">Rooms finish by exiting through the top edge. The summit flag is optional.</p>
       </section>
       <section>
@@ -104,13 +124,12 @@
   </main>
 
   <dialog id="previewDialog">
-    <div class="dialog-head"><div><h2>Real PICO-8 emulator preview</h2><p>Studio builds your level into a PICO-8 cartridge and runs it in Fake-08: arrows move, Z jumps, X dashes, C grabs/climbs after a Climb Chest (MATH on calculator), R restarts. Rooms complete by exiting through the top.</p></div><button id="closePreview">Close</button></div>
+    <div class="dialog-head"><div><h2>Original-cartridge PICO-8 preview</h2><p>Studio patches the rooms into your browser-local original Celeste .p8 and executes that modified cartridge in Fake-08. Arrows move, Z jumps, X dashes, C grabs/climbs after a Climb Chest, R reloads the patched cart.</p></div><button id="closePreview">Close</button></div>
     <canvas id="previewCanvas" width="512" height="512"></canvas>
     <p id="previewStatus"></p>
   </dialog>
 
   <dialog id="messageDialog"><h2 id="messageTitle"></h2><pre id="messageBody"></pre><button id="messageClose">Close</button></dialog>
-  <script type="module" src="app.js?v=20260808-real-pico8"></script>
-  <script type="module" src="interaction-fix.js?v=20260808-rotation-map2"></script>
+  <script src="private-gate.js?v=20260808-private-original-cart"></script>
 </body>
 </html>
