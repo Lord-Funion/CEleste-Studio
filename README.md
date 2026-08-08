@@ -27,7 +27,7 @@ https://lordfunion.dev/CEleste-Studio/
 - Big chests can upgrade Madeline to two or three dashes
 - Climb Chest power-up: touch it to unlock `MATH` wall-grab/climbing with a 110-point stamina system for the rest of the level
 - Falling floors, springs, balloons, normal/flying strawberries, keys, chests, fake walls, moving platforms, memorials, big chests, and summit flags
-- PICO-8-style 30 Hz playable preview with acceleration, gravity, coyote time, jump buffering, wall slides/jumps, 8-way dash, spikes, springs, balloons, moving platforms, falling floors, key/chest state, fake-wall breaks, fruit collection, dash upgrades, deaths/restarts, and top-of-room transitions
+- Real PICO-8 cartridge preview executed by Fake-08 WebAssembly; Studio generates the current level into a cart so browser JavaScript does not reimplement player physics or collision
 - Pencil, eraser, flood fill, and eyedropper
 - Player spawn placement; rooms complete by climbing through the top edge
 - 100-step undo/redo history
@@ -60,6 +60,12 @@ When a locked chest or fake wall is selected, its inspector lets you choose whet
 Each strawberry-producing entity is treated as its own collectible source. A room can therefore contain several normal/flying strawberries plus strawberry chests and strawberry fake walls; collecting one source does not make the others disappear after a death or restart. Keys remain available while a locked chest in the room still needs to be opened.
 
 The summit flag is an optional summit/results object. It does not complete ordinary custom rooms. Rooms advance only when Madeline exits through the top edge, matching Celeste Classic.
+
+## Real PICO-8 preview
+
+The Preview button does not simulate Celeste physics in JavaScript. Studio generates a temporary `.p8` cartridge from the selected level and executes it in a PICO-8-compatible Fake-08 WebAssembly runtime. The cartridge uses the same Celeste atlas, tile flags, room data, gameplay entities, CEleste movement constants/order, arbitrary CELV rotations, and Climb Chest mechanics. JavaScript only generates the cartridge, forwards input, and displays the emulator framebuffer.
+
+The runtime is a clean implementation based on the MIT-licensed official Celeste Classic reference in `NoelFB/Celeste` plus the current CEleste custom-level behavior. The unlicensed Lexaloffle BBS Celeste cartridge is not redistributed by Studio. Fake-08 is fetched from a pinned upstream build by the deployment workflow; see `THIRD-PARTY-NOTICES.md`.
 
 ## Local development
 

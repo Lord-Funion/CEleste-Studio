@@ -88,7 +88,7 @@
         <button id="setSpawn">Set player spawn</button>
         <p class="hint">Press <kbd>R</kbd> to rotate clockwise, <kbd>Shift+R</kbd> for counter-clockwise. Rotation is stored independently, so any graphical piece can be turned 0°, 90°, 180°, or 270° and exported exactly to the calculator.</p>
         <p class="hint">Fake walls, memorials, moving platforms, flying berries, balloons, and big chests are complete logical pieces — not loose sprite fragments.</p>
-        <p class="hint">Rooms finish only by climbing through the top. The summit flag is optional.</p>
+        <p class="hint">Rooms finish by exiting through the top edge. The summit flag is optional.</p>
       </section>
       <section>
         <div class="section-title"><h2>Validation</h2><button id="validate">Run</button></div>
@@ -104,13 +104,13 @@
   </main>
 
   <dialog id="previewDialog">
-    <div class="dialog-head"><div><h2>Playable preview</h2><p>PICO-8 physics: arrows move, Z jumps, X dashes, C grabs/climbs after a Climb Chest (MATH on calculator), R restarts. Complete each room by exiting through the top.</p></div><button id="closePreview">Close</button></div>
+    <div class="dialog-head"><div><h2>Real PICO-8 emulator preview</h2><p>Studio builds your level into a PICO-8 cartridge and runs it in Fake-08: arrows move, Z jumps, X dashes, C grabs/climbs after a Climb Chest (MATH on calculator), R restarts. Rooms complete by exiting through the top.</p></div><button id="closePreview">Close</button></div>
     <canvas id="previewCanvas" width="512" height="512"></canvas>
     <p id="previewStatus"></p>
   </dialog>
 
   <dialog id="messageDialog"><h2 id="messageTitle"></h2><pre id="messageBody"></pre><button id="messageClose">Close</button></dialog>
-  <script type="module" src="app.js?v=20260808-climb-chest"></script>
+  <script type="module" src="app.js?v=20260808-real-pico8"></script>
   <script type="module" src="interaction-fix.js?v=20260808-rotation-map2"></script>
 </body>
 </html>
