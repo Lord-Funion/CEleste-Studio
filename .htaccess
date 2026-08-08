@@ -23,5 +23,5 @@ AddDefaultCharset UTF-8
   Header set X-Robots-Tag "noindex, nofollow, noarchive"
   Header set Referrer-Policy "no-referrer"
   Header set Cross-Origin-Resource-Policy "same-origin"
-  Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+  Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
 </IfModule>
