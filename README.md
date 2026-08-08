@@ -1,6 +1,7 @@
 # CEleste Studio 1.0.0
 
 CEleste Studio is a dependency-free static browser editor for custom levels and packs used by the TI-84 Plus CE CEleste port.
+https://lordfunion.dev/CEleste-Studio/
 
 ## Features
 
