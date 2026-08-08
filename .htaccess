@@ -1,8 +1,7 @@
 DirectoryIndex index.html
 AddDefaultCharset UTF-8
 
-# CEleste Studio is a static browser application. No Node.js, PHP, database,
-# server-side framework, or rewrite router is required.
+# Static runtime only: no Node.js, PHP, database, rewrite router, or backend.
 <IfModule mod_mime.c>
   AddType text/javascript .js .mjs
   AddType application/wasm .wasm
@@ -10,15 +9,19 @@ AddDefaultCharset UTF-8
   AddType image/png .png
 </IfModule>
 
-# Avoid stale editor/runtime glue after updates while allowing immutable binary
-# assets (sprite atlas and the pinned Fake-08 WASM module) to be cached.
 <IfModule mod_headers.c>
-  <FilesMatch "\.(html|css|js|mjs|lua)$">
+  # Application code should update immediately; immutable binary assets may cache.
+  <FilesMatch "\.(html|css|js|mjs)$">
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
   <FilesMatch "\.(png|svg|webp|ico|wasm)$">
     Header set Cache-Control "public, max-age=604800"
   </FilesMatch>
+
   Header set X-Content-Type-Options "nosniff"
-  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set X-Frame-Options "DENY"
+  Header set X-Robots-Tag "noindex, nofollow, noarchive"
+  Header set Referrer-Policy "no-referrer"
+  Header set Cross-Origin-Resource-Policy "same-origin"
+  Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
 </IfModule>
