@@ -8,12 +8,17 @@ const rotateCCW = document.getElementById('rotateCCW');
 const pieceMeta = document.getElementById('pieceMeta');
 const cursorStatus = document.getElementById('cursorStatus');
 
-const ROTATABLE_IDS = new Set([
-  17, 59, 27, 43,       // spikes: up/right/down/left
-  11, 12,               // moving platforms: left/right
-  34, 38, 50, 36,       // terrain rotation family
-  41, 42, 58, 57        // terrain/decor rotation family
+const ROTATE_CW = new Map([
+  [17,59],[59,27],[27,43],[43,17],
+  [11,12],[12,11],
+  [34,38],[38,50],[50,36],[36,34],
+  [41,42],[42,58],[58,57],[57,41]
 ]);
+
+function rotateCCWTarget(id) {
+  for (const [from, to] of ROTATE_CW) if (to === id) return from;
+  return null;
+}
 
 function focusEditor() {
   if (!editorCanvas) return;
@@ -22,21 +27,44 @@ function focusEditor() {
 }
 
 function selectedPieceId() {
+  // Prefer the actually highlighted palette item so stale inspector/status text
+  // can never make rotation target the previously selected tile.
+  const active = document.querySelector('.palette-item.active');
+  const activeMatch = active?.title?.match(/\bID\s+(\d+)\b/i);
+  if (activeMatch) return Number(activeMatch[1]);
   const match = pieceMeta?.textContent?.match(/\bID\s+(\d+)\b/i);
   return match ? Number(match[1]) : null;
 }
 
-function syncRotationControls() {
+function rotationTargets(id) {
+  return { cw: ROTATE_CW.get(id) ?? null, ccw: rotateCCWTarget(id) };
+}
+
+function setRotationStatus(id) {
+  if (id == null || !cursorStatus) return;
+  const { cw, ccw } = rotationTargets(id);
+  if (cw != null && ccw != null) {
+    cursorStatus.textContent = `Rotation: ID ${id} → ${cw} clockwise · ${ccw} counter-clockwise`;
+  } else {
+    cursorStatus.textContent = `ID ${id} has no distinct 90° counterpart`;
+  }
+}
+
+function syncRotationControls(showStatus = false) {
   const id = selectedPieceId();
   if (id == null || !rotateCW || !rotateCCW) return;
-  const canRotate = ROTATABLE_IDS.has(id);
-  rotateCW.disabled = !canRotate;
-  rotateCCW.disabled = !canRotate;
-  const hint = canRotate
-    ? 'Rotate using the matching Celeste Classic/PICO-8 counterpart.'
-    : 'This piece has no distinct 90° counterpart in the original Celeste Classic tile set.';
-  rotateCW.title = hint;
-  rotateCCW.title = hint;
+  const { cw, ccw } = rotationTargets(id);
+  const canCW = cw != null && cw !== id;
+  const canCCW = ccw != null && ccw !== id;
+  rotateCW.disabled = !canCW;
+  rotateCCW.disabled = !canCCW;
+  rotateCW.title = canCW
+    ? `Rotate clockwise: PICO-8 ID ${id} → ID ${cw}`
+    : 'This piece has no distinct clockwise counterpart in the original Celeste Classic tile set.';
+  rotateCCW.title = canCCW
+    ? `Rotate counter-clockwise: PICO-8 ID ${id} → ID ${ccw}`
+    : 'This piece has no distinct counter-clockwise counterpart in the original Celeste Classic tile set.';
+  if (showStatus) setRotationStatus(id);
 }
 
 function isEditableTarget(target) {
@@ -55,13 +83,13 @@ function clickTool(name) {
 // Keep rotation button state synchronized whenever the core editor changes the
 // selected palette item or inspector contents.
 if (pieceMeta) {
-  new MutationObserver(syncRotationControls).observe(pieceMeta, {
+  new MutationObserver(() => syncRotationControls(false)).observe(pieceMeta, {
     childList: true,
     subtree: true,
     characterData: true
   });
 }
-queueMicrotask(syncRotationControls);
+queueMicrotask(() => syncRotationControls(false));
 
 // Palette/tool clicks should hand focus back to the canvas so the next key is
 // an editor shortcut rather than remaining stuck on a button/control.
@@ -70,7 +98,7 @@ document.addEventListener('click', event => {
   if (!target) return;
   if (target.closest('.palette-item, [data-tool], #rotateCW, #rotateCCW, #setSpawn')) {
     queueMicrotask(() => {
-      syncRotationControls();
+      syncRotationControls(true);
       focusEditor();
     });
   }
@@ -106,14 +134,16 @@ window.addEventListener('keydown', event => {
   if (!event.ctrlKey && !event.metaKey && !event.altKey && (code === 'KeyR' || key === 'r')) {
     event.preventDefault();
     event.stopImmediatePropagation();
-    syncRotationControls();
+    syncRotationControls(false);
     const button = event.shiftKey ? rotateCCW : rotateCW;
     if (button && !button.disabled) {
       button.click();
-      syncRotationControls();
-      focusEditor();
+      queueMicrotask(() => {
+        syncRotationControls(true);
+        focusEditor();
+      });
     } else if (cursorStatus) {
-      cursorStatus.textContent = 'This piece has no distinct rotated counterpart';
+      setRotationStatus(selectedPieceId());
     }
     return;
   }
