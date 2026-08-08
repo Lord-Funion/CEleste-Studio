@@ -1,0 +1,38 @@
+name: Static deploy package
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify static runtime files
+        run: |
+          test -f .htaccess
+          test -f index.html
+          test -f app.js
+          test -f styles.css
+          test -f robots.txt
+          test -f lib/format.mjs
+          test -f assets/pico8-atlas.png
+      - name: Build GoDaddy upload ZIP
+        run: |
+          zip -9 CEleste-Studio-GoDaddy-Upload.zip \
+            .htaccess index.html app.js styles.css robots.txt \
+            lib/format.mjs assets/pico8-atlas.png
+          unzip -l CEleste-Studio-GoDaddy-Upload.zip
+          sha256sum CEleste-Studio-GoDaddy-Upload.zip > CEleste-Studio-GoDaddy-Upload.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CEleste-Studio-GoDaddy-Upload
+          path: |
+            CEleste-Studio-GoDaddy-Upload.zip
+            CEleste-Studio-GoDaddy-Upload.sha256
+          if-no-files-found: error
