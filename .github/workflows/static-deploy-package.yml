@@ -38,8 +38,8 @@ jobs:
           test -f lib/pico8-preview.mjs
           test -f assets/pico8-atlas.png
           test -f THIRD-PARTY-NOTICES.md
+          test ! -f preview-runtime/celeste-preview.lua
           ! find . -type f \( -iname '*.p8' -o -iname '*.p8.png' \) -print | grep -q .
-          ! grep -RIl --exclude-dir=.git --exclude='*.md' --exclude='*.test.mjs' 'celeste-preview.lua' . | grep -q .
 
       - name: Download pinned Fake-08 WebAssembly runtime
         run: |
