@@ -38,8 +38,8 @@ jobs:
           test -f lib/pico8-preview.mjs
           test -f assets/pico8-atlas.png
           test -f THIRD-PARTY-NOTICES.md
-          ! find . -type f -iname '*.p8' -o -iname '*.p8.png' | grep -q .
-          ! grep -RIl --exclude='*.md' --exclude='*.test.mjs' 'celeste-preview.lua' . | grep -q .
+          ! find . -type f \( -iname '*.p8' -o -iname '*.p8.png' \) -print | grep -q .
+          ! grep -RIl --exclude-dir=.git --exclude='*.md' --exclude='*.test.mjs' 'celeste-preview.lua' . | grep -q .
 
       - name: Download pinned Fake-08 WebAssembly runtime
         run: |
@@ -52,7 +52,9 @@ jobs:
           test -s preview-runtime/fake08.wasm
 
       - name: Run Studio unit tests
-        run: npm test
+        run: |
+          python3 -m py_compile serve-local.py
+          npm test
 
       - name: Prove the production original-cart patch loads in Fake-08
         run: npm run test:fake08
