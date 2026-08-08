@@ -1,0 +1,26 @@
+name: Apply real PICO-8 preview migration
+
+on:
+  push:
+    branches: [agent/real-pico8-preview]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/real-pico8-preview
+      - name: Replace hand-written browser physics
+        run: python3 tools/apply_real_pico8_preview.py
+      - name: Commit Studio integration
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js
+          git commit -m "Run previews in a real Fake-08 PICO-8 VM"
+          git push origin HEAD:agent/real-pico8-preview
