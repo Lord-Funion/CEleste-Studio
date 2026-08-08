@@ -1,0 +1,23 @@
+DirectoryIndex index.html
+AddDefaultCharset UTF-8
+
+# CEleste Studio is a static browser application. No Node.js, PHP, database,
+# server-side framework, or rewrite router is required.
+<IfModule mod_mime.c>
+  AddType text/javascript .js .mjs
+  AddType text/css .css
+  AddType image/png .png
+</IfModule>
+
+# Avoid stale editor code after updates while still allowing the sprite atlas
+# and other images to be cached for normal performance.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|css|js|mjs)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+  <FilesMatch "\.(png|svg|webp|ico)$">
+    Header set Cache-Control "public, max-age=604800"
+  </FilesMatch>
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
