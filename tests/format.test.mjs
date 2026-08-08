@@ -50,6 +50,15 @@ test('pack payload round trip', () => {
   assert.equal(decoded.kind, 'pack'); assert.equal(decoded.levels.length, 2); assert.equal(decoded.levels[1].title, 'Test 2');
 });
 
+test('exported AppVar data begins with CELV magic for calculator scanning', () => {
+  const bytes = exportLevel8xv(level(), { name: 'CLMAGIC' });
+  assert.equal(new TextDecoder().decode(bytes.slice(72, 76)), 'CELV');
+  const variableLength = bytes[57] | (bytes[58] << 8);
+  const copyLength = bytes[70] | (bytes[71] << 8);
+  assert.equal(copyLength, variableLength);
+  assert.equal(variableLength, encodeLevelPayload(level()).length);
+});
+
 test('8xv level round trip and checksum', () => {
   const bytes = exportLevel8xv(level(), { name: 'CLTEST' }); const imported = import8xv(bytes);
   assert.equal(imported.name, 'CLTEST'); assert.equal(imported.archived, true); assert.equal(imported.data.kind, 'level');
