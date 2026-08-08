@@ -16,10 +16,7 @@ https://lordfunion.dev/CEleste-Studio/
   - flying strawberries with wings
   - dash balloons with their companion art
 - Every standalone original Celeste Classic map-tile family exposed through searchable categories
-- Real PICO-8 counterpart rotation where the calculator can reproduce it
-  - four spike directions
-  - left/right moving platforms
-  - supported terrain/decor rotation families
+- Arbitrary 0°/90°/180°/270° CELV graphics rotation reproduced by the calculator and emulator preview
 - Key and locked-chest puzzles
 - Locked chests can contain strawberries
 - Fake walls can contain strawberries
@@ -29,7 +26,7 @@ https://lordfunion.dev/CEleste-Studio/
 - Falling floors, springs, balloons, normal/flying strawberries, keys, chests, fake walls, moving platforms, memorials, big chests, and summit flags
 - Real PICO-8 cartridge preview executed by Fake-08 WebAssembly; Studio generates the current level into a cart so browser JavaScript does not reimplement player physics or collision
 - Pencil, eraser, flood fill, and eyedropper
-- Player spawn placement; rooms complete by climbing through the top edge
+- Player spawn placement; rooms complete by exiting through the top edge
 - 100-step undo/redo history
 - Browser autosave and crash recovery
 - Editable `.celproj` project backups
@@ -51,7 +48,7 @@ Animation/helper frames that only exist as runtime states are not exposed as fak
 
 Press `R` to rotate the selected piece clockwise or `Shift+R` to rotate counter-clockwise. The inspector also has rotation buttons.
 
-Studio only uses real Celeste Classic/PICO-8 counterpart tiles or gameplay directions that CEleste can reproduce. It does not create browser-only rotated art that would change when exported to a calculator.
+CELV stores rotation independently from sprite ID. Studio, the calculator runtime, and the emulator preview all preserve the same 0°, 90°, 180°, and 270° values. Rotation therefore does not require a separate counterpart sprite to exist.
 
 ## Gameplay properties
 
@@ -67,6 +64,8 @@ The Preview button does not simulate Celeste physics in JavaScript. Studio gener
 
 The runtime is a clean implementation based on the MIT-licensed official Celeste Classic reference in `NoelFB/Celeste` plus the current CEleste custom-level behavior. The unlicensed Lexaloffle BBS Celeste cartridge is not redistributed by Studio. Fake-08 is fetched from a pinned upstream build by the deployment workflow; see `THIRD-PARTY-NOTICES.md`.
 
+The generated cart uses PICO-8's real 128×64 tile map. All 32 CELV rooms fit as an 8×4 room grid; PICO-8's shared lower sprite/map memory is encoded correctly for map rows 32–63. The browser preview runs at the cart's native 30 Hz update rate.
+
 ## Local development
 
 Node.js is useful for the automated test suite and the convenience local server only:
@@ -76,29 +75,38 @@ npm test
 npm run serve
 ```
 
+The deploy workflow additionally downloads the pinned Fake-08 browser runtime and runs `npm run test:fake08`, which proves a generated Studio cart can be loaded and stepped by the actual WebAssembly VM.
+
 Node.js is **not** required on the production web host.
 
 ## Public production hosting
 
 CEleste Studio is a static web application and is designed to run on ordinary Apache/cPanel shared hosting, including GoDaddy Web Hosting plans where Node.js is unavailable.
 
-A live deployment only needs:
+The ready-to-upload CI artifact contains:
 
 ```text
 .htaccess
 index.html
 app.js
+interaction-fix.js
 styles.css
 robots.txt
+THIRD-PARTY-NOTICES.md
 assets/pico8-atlas.png
 lib/format.mjs
+lib/pico8-cart.mjs
+lib/pico8-preview.mjs
+preview-runtime/celeste-preview.lua
+preview-runtime/fake08.js
+preview-runtime/fake08.wasm
 ```
 
-There is no production build command. Upload those files while preserving the `assets/` and `lib/` directories and the editor runs entirely in the visitor's browser. The included `.htaccess` provides the `.mjs` MIME type and conservative cache rules for shared Apache hosting.
+There is no production build command on the server. Upload the generated `CEleste-Studio-GoDaddy-Upload.zip` contents while preserving the directories. The included `.htaccess` provides the `.mjs` and WebAssembly MIME types and appropriate cache rules for shared Apache hosting.
 
 See [`HOSTING-GODADDY.md`](HOSTING-GODADDY.md) for the exact cPanel deployment layout and checklist.
 
-Because the application is client-side JavaScript, any files served to a public visitor can also be downloaded/read by that visitor even if this Git repository itself remains private.
+Because the application is client-side JavaScript/WebAssembly, any files served to a public visitor can also be downloaded/read by that visitor even if this Git repository itself remains private.
 
 ## Release
 
@@ -106,7 +114,7 @@ Current release: **1.0.0**.
 
 ## Disclaimer
 
-Unofficial community software. Not affiliated with or endorsed by Extremely OK Games, Maddy Thorson, Noel Berry, Texas Instruments, or the CE Programming Toolchain developers.
+Unofficial community software. Not affiliated with or endorsed by Extremely OK Games, Maddy Thorson, Noel Berry, Texas Instruments, Lexaloffle, Fake-08, or the CE Programming Toolchain developers.
 
 ## Repository status
 
