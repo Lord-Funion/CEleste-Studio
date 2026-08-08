@@ -99,6 +99,14 @@ test('validation accepts complete key/chest/fake-wall/big-chest puzzle', () => {
   assert.match(result.warnings.join('\n'), /three dashes/i);
 });
 
+test('validation accepts Climb Chest entity 129', () => {
+  const good = level();
+  good.rooms[0].entities = [{ type: 129, x: 6, y: 8, flags: 0 }];
+  good.rooms[0].tiles[8*16+6] = 0;
+  const result = validateLevel(good);
+  assert.equal(result.valid, true);
+});
+
 test('validation rejects compound piece outside room', () => {
   const bad = level();
   bad.rooms[0].entities = [{ type: 64, x: 15, y: 15, flags: 0 }];

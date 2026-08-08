@@ -25,6 +25,7 @@ https://lordfunion.dev/CEleste-Studio/
 - Fake walls can contain strawberries
 - Multiple direct/chest/fake-wall strawberry sources persist independently across deaths and restarts
 - Big chests can upgrade Madeline to two or three dashes
+- Climb Chest power-up: touch it to unlock `MATH` wall-grab/climbing with a 110-point stamina system for the rest of the level
 - Falling floors, springs, balloons, normal/flying strawberries, keys, chests, fake walls, moving platforms, memorials, big chests, and summit flags
 - PICO-8-style 30 Hz playable preview with acceleration, gravity, coyote time, jump buffering, wall slides/jumps, 8-way dash, spikes, springs, balloons, moving platforms, falling floors, key/chest state, fake-wall breaks, fruit collection, dash upgrades, deaths/restarts, and top-of-room transitions
 - Pencil, eraser, flood fill, and eyedropper

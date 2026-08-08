@@ -104,13 +104,13 @@
   </main>
 
   <dialog id="previewDialog">
-    <div class="dialog-head"><div><h2>Playable preview</h2><p>PICO-8 physics: arrows move, Z jumps, X dashes, R restarts. Complete each room by exiting through the top.</p></div><button id="closePreview">Close</button></div>
+    <div class="dialog-head"><div><h2>Playable preview</h2><p>PICO-8 physics: arrows move, Z jumps, X dashes, C grabs/climbs after a Climb Chest (MATH on calculator), R restarts. Complete each room by exiting through the top.</p></div><button id="closePreview">Close</button></div>
     <canvas id="previewCanvas" width="512" height="512"></canvas>
     <p id="previewStatus"></p>
   </dialog>
 
   <dialog id="messageDialog"><h2 id="messageTitle"></h2><pre id="messageBody"></pre><button id="messageClose">Close</button></dialog>
-  <script type="module" src="app.js?v=20260808-arbitrary-rotation"></script>
+  <script type="module" src="app.js?v=20260808-climb-chest"></script>
   <script type="module" src="interaction-fix.js?v=20260808-rotation-map2"></script>
 </body>
 </html>
