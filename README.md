@@ -33,6 +33,7 @@ The original-cart patch supports:
 - 2-dash and 3-dash big-chest behavior;
 - per-source strawberry persistence instead of the original room-wide suppression rule;
 - Climb Chest entity 129 and the custom grab/stamina mechanic;
+- Silver Key entity 130 and solid Silver Gate entity 131, with persistent 0–63 link groups shared across the level;
 - simple-sprite entity rotation, including ordinary locked chests;
 - level completion after the final Studio room.
 
@@ -47,6 +48,7 @@ Some original Celeste entities are multi-sprite/custom-draw animations. If one o
 - Arbitrary 0°/90°/180°/270° CELV rotation
 - Pencil, eraser, fill, eyedropper, undo/redo
 - Chest, fake-wall, big-chest and Climb Chest properties
+- Linked Silver Keys and stackable Silver Gate blocks with link groups 0–63
 - Browser autosave and `.celproj` project files
 - Import/export of CELV `.8xv` AppVars
 - Validation of room/entity limits and AppVar data
