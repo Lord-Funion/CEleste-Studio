@@ -1,0 +1,44 @@
+name: Apply silver key gates
+
+on:
+  push:
+    branches:
+      - agent/silver-key-gates
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/silver-key-gates
+          fetch-depth: 0
+      - name: Apply editor patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          PATCH=tools/patches/silver-key-gates.patch
+          if [ ! -f "$PATCH" ]; then
+            echo "Patch already cleaned up."
+            exit 0
+          fi
+          sed -i '/^\*\*\* End Patch$/d' "$PATCH"
+          if git apply --check "$PATCH"; then
+            git apply "$PATCH"
+          else
+            echo "Patch already applied or no longer applies; checking feature marker."
+            grep -q "id:131,name:'Silver gate'" app.js || exit 1
+          fi
+          npm test
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js lib/format.mjs
+          if git diff --cached --quiet; then
+            echo "No source changes to commit."
+            exit 0
+          fi
+          git commit -m "Add linked silver keys and gate blocks [silver-patch-applied]"
+          git push origin HEAD:agent/silver-key-gates
