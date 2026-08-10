@@ -1,0 +1,36 @@
+name: Temporary Studio silver gate updater
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'agent/silver-key-gates'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/silver-key-gates
+          fetch-depth: 0
+      - name: Apply guarded source changes
+        run: python3 tools/apply_silver_key_gates.py
+      - name: Run Studio tests
+        run: npm test
+      - name: Commit source changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js lib/format.mjs lib/pico8-cart.mjs tests/silver-gates.test.mjs
+          if git diff --cached --quiet; then
+            echo "No source changes to commit."
+            exit 0
+          fi
+          git commit -m "Add linked silver keys and gates [silver-patch-applied]"
+          git push origin HEAD:agent/silver-key-gates
