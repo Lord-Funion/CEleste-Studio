@@ -5,8 +5,8 @@ import {
 import {createPico8Preview} from './lib/pico8-preview.mjs';
 
 const TILE_SIZE = 8;
-const ENTITY_TYPES = new Set([8,11,12,18,20,22,23,26,28,64,86,96,118,129]);
-const FRUIT_GATED_TYPES = new Set([20,26,28,64,129]);
+const ENTITY_TYPES = new Set([8,11,12,18,20,22,23,26,28,64,86,96,118,129,130,131]);
+const FRUIT_GATED_TYPES = new Set([20,26,28,64,129,130]);
 const ENTITY_ROTATION_SHIFT=6,ENTITY_ROTATION_MASK=0xc0,ENTITY_FLAG_MASK=0x3f;
 const entityRotation=e=>((e.flags||0)&ENTITY_ROTATION_MASK)>>ENTITY_ROTATION_SHIFT;
 const entityGameplayFlags=e=>(e.flags||0)&ENTITY_FLAG_MASK;
@@ -30,6 +30,8 @@ const LOGICAL_PIECES = [
   {id:0,name:'Empty',category:'Basic',description:'Erase terrain or leave a grid cell empty.',color:'#090811'},
   {id:1,name:'Player spawn',category:'Gameplay',special:'spawn',description:'Where Madeline spawns. Each room has exactly one spawn position.',color:'#ff557f'},
   {id:8,name:'Key',category:'Gameplay',entity:true,description:'Collecting the key unlocks every locked chest in the current room.',color:'#ffe66b'},
+  {id:130,name:'Silver key',category:'Gameplay',entity:true,options:'link',description:'Collect it to open every silver gate block with the same link group (0–63), even in another room of this custom level.',color:'#c2c3c7'},
+  {id:131,name:'Silver gate',category:'Gameplay',entity:true,options:'link',description:'A solid 8×8 linked gate block. Stack blocks with the same link group to build doors, portcullises, walls, or any keyed barrier shape.',color:'#5f574f'},
   {id:20,name:'Locked chest',category:'Gameplay',entity:true,description:'Original key puzzle chest. By default it releases a strawberry after the room key is collected.',options:'strawberry',color:'#ce9250'},
   {id:129,name:'Climb Chest',category:'Gameplay',entity:true,description:'Custom power-up chest. Touch it to unlock modern-Celeste-style wall grabbing for the rest of the level. On calculator hold MATH against a non-ice wall; Up climbs, Down descends, and stamina limits hanging/climbing.',color:'#74d9ff'},
   {id:64,name:'Fake wall',category:'Gameplay',entity:true,description:'Complete 16×16 dash-breakable fake block. By default a strawberry is hidden inside.',options:'strawberry',compound:'fake-wall',color:'#5f4564'},
@@ -88,6 +90,14 @@ function drawPicoSprite(target,id,dx,dy,size,flipX=false,flipY=false,alpha=1,rot
 function pieceBounds(id,cell){if(id===64||id===96)return{ox:0,oy:0,w:2*cell,h:2*cell};if(id===86)return{ox:0,oy:-cell,w:2*cell,h:2*cell};if(id===11||id===12)return{ox:-cell/2,oy:-cell/8,w:2*cell,h:cell};return{ox:0,oy:0,w:cell,h:cell};}
 function drawLogicalPiece(target,id,dx,dy,cell,alpha=1,rotation=0){
   if(rotation){const b=pieceBounds(id,cell),cx=dx+b.ox+b.w/2,cy=dy+b.oy+b.h/2;target.save();target.translate(cx,cy);target.rotate((rotation&3)*Math.PI/2);target.translate(-cx,-cy);drawLogicalPiece(target,id,dx,dy,cell,alpha,0);target.restore();return true;}
+  if(id===130){
+    const ok=drawPicoSprite(target,8,dx,dy,cell,false,false,alpha);
+    if(ok){target.save();target.globalAlpha=alpha;target.globalCompositeOperation='source-atop';target.fillStyle='#c2c3c7';target.fillRect(dx,dy,cell,cell);target.restore();}
+    return true;
+  }
+  if(id===131){
+    target.save();target.globalAlpha=alpha;target.fillStyle='#5f574f';target.fillRect(dx,dy,cell,cell);const c=cell/8;target.fillStyle='#c2c3c7';target.fillRect(dx+c,dy,2*c,cell);target.fillRect(dx+5*c,dy,2*c,cell);target.fillStyle='#fff1e8';target.fillRect(dx+3*c,dy+3*c,2*c,2*c);target.restore();return true;
+  }
   if(id===129){
     drawPicoSprite(target,20,dx,dy,cell,false,false,alpha);
     target.save();target.globalAlpha=alpha;target.fillStyle='#74d9ff';const c=cell/8;target.fillRect(dx+3*c,dy+2*c,2*c,4*c);target.fillRect(dx+2*c,dy+3*c,4*c,2*c);target.restore();return true;
@@ -104,7 +114,7 @@ function drawPaletteIcon(target,item){
   target.clearRect(0,0,34,34);target.imageSmoothingEnabled=false;
   const id=item.id;
   if(id===64||id===96){drawLogicalPiece(target,id,3,3,14);return;}
-  if(id===129){drawLogicalPiece(target,id,5,5,24);return;}
+  if(id===129||id===130||id===131){drawLogicalPiece(target,id,5,5,24);return;}
   if(id===86){drawLogicalPiece(target,id,3,17,14);return;}
   if(id===11||id===12){drawPicoSprite(target,11,3,10,14);drawPicoSprite(target,12,17,10,14);return;}
   if(id===28){drawPicoSprite(target,45,1,10,12);drawPicoSprite(target,28,11,9,16);drawPicoSprite(target,45,23,10,12,true);return;}
@@ -201,6 +211,8 @@ function renderInspector(){
     const label=document.createElement('label');label.className='option-row';const cb=document.createElement('input');cb.type='checkbox';cb.checked=(placementFlags&1)===0;cb.onchange=()=>{placementFlags=cb.checked?(placementFlags&~1):(placementFlags|1);};label.append(cb,document.createTextNode(' Contains a strawberry'));opts.append(label);
   }else if(item.options==='dashes'){
     const label=document.createElement('label');label.textContent='Dash upgrade';const sel=document.createElement('select');sel.innerHTML='<option value="2">2 dashes</option><option value="3">3 dashes</option>';sel.value=(placementFlags&2)?'3':'2';sel.onchange=()=>{placementFlags=sel.value==='3'?(placementFlags|2):(placementFlags&~2);};label.append(sel);opts.append(label);
+  }else if(item.options==='link'){
+    const label=document.createElement('label');label.textContent='Link group ';const input=document.createElement('input');input.type='number';input.min='0';input.max='63';input.step='1';input.value=String(placementFlags&63);input.oninput=()=>{const n=Math.max(0,Math.min(63,Number(input.value)||0));placementFlags=n;input.value=String(n);};label.append(input);opts.append(label);
   }
 }
 function rotateSelected(clockwise=true){if(selected===0||specialMode==='spawn')return;placementRotation=(placementRotation+(clockwise?1:3))&3;renderPalette();renderInspector();drawEditor();$('cursorStatus').textContent=`Placement rotation ${placementRotation*90}°`;}
