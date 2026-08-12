@@ -8,3 +8,4 @@ dist/
 !.env.example
 storage/shares/
 storage/rate/
+storage/community/

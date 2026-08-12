@@ -27,6 +27,8 @@ jobs:
           test -f index.html
           test -f bootstrap.js
           test -f share.php
+          test -f community.php
+          test -f community.css
           test -f storage/.htaccess
           test -f app.js
           test -f interaction-fix.js
@@ -60,6 +62,7 @@ jobs:
         run: |
           python3 -m py_compile serve-local.py
           php -l share.php
+          php -l community.php
           npm test
 
       - name: Prove the production original-cart patch loads in Fake-08
@@ -69,12 +72,12 @@ jobs:
         run: |
           set -euxo pipefail
           common=(
-            .htaccess index.html bootstrap.js app.js interaction-fix.js styles.css robots.txt
+            .htaccess index.html bootstrap.js app.js interaction-fix.js styles.css community.css robots.txt
             lib/format.mjs lib/private-cart.mjs lib/pico8-cart.mjs lib/pico8-preview.mjs
             assets/pico8-atlas.png preview-runtime/fake08.js preview-runtime/fake08.wasm
             THIRD-PARTY-NOTICES.md
           )
-          hosted=("${common[@]}" share.php storage/.htaccess)
+          hosted=("${common[@]}" share.php community.php storage/.htaccess)
           zip -9 CEleste-Studio-GoDaddy.zip "${hosted[@]}" HOSTING-GODADDY.md PREVIEW.md
           zip -9 CEleste-Studio-Local.zip "${common[@]}" serve-local.py "Start CEleste Studio.bat" README.md PREVIEW.md
           sha256sum CEleste-Studio-GoDaddy.zip > CEleste-Studio-GoDaddy.sha256

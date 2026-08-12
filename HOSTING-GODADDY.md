@@ -1,14 +1,14 @@
 # GoDaddy/cPanel deployment
 
-CEleste Studio 1.1.0 can run on ordinary GoDaddy Web Hosting/cPanel. The editor itself is browser JavaScript; PHP is used only for project sharing.
+CEleste Studio 1.2.0 can run on ordinary GoDaddy Web Hosting/cPanel. The editor itself is browser JavaScript; PHP provides unlisted project sharing and the public Community Level Browser.
 
 ## What the hosting account needs
 
 Required:
 
 - Apache/cPanel static hosting
-- PHP (PHP 8.x recommended)
-- a writable `storage/` directory for shared project records
+- PHP 8.x
+- a writable `storage/` directory for shared projects and community records
 - HTTPS
 
 Not required:
@@ -29,7 +29,7 @@ The hosted Studio is public. `index.html` loads the editor directly through `boo
 
 `robots.txt` and the `X-Robots-Tag` header still discourage indexing. They are not authentication.
 
-## Project sharing
+## Unlisted project sharing
 
 `share.php` stores CEleste project JSON under:
 
@@ -48,13 +48,36 @@ The endpoint:
 - never receives the browser-local original Celeste cartridge;
 - does not require a database.
 
-Anyone who has a share link can open that shared project, so treat the link itself as the access token.
+Anyone who has an unlisted share link can open that shared project, so treat the link itself as the access token.
+
+## Community Level Browser
+
+`community.php` powers the public level browser and stores runtime data under:
+
+```text
+storage/community/
+```
+
+Studio can publish the currently active level as an independent public copy. Community users can:
+
+- search levels;
+- sort by **Most popular**, **Newest**, **Most liked**, **Most downloaded**, or **Most commented**;
+- like or dislike levels;
+- leave public comments;
+- see view/download/comment/reaction counts;
+- open a level directly in Studio;
+- download a `.celproj` copy;
+- copy direct `?level=<id>` links.
+
+Community item IDs are random 128-bit values. The endpoint has request-size limits and basic per-IP action rate limits. Reactions also use a browser-generated client identifier to reduce accidental duplicate voting. This is a lightweight public community system, not a user-account/authentication service.
+
+The popularity score combines positive reactions, negative reactions, downloads, comments, and views. It is intended for discovery and is not a fraud-proof global ranking.
 
 ## The Celeste cartridge is not deployed or shared
 
 The GoDaddy ZIP does **not** contain the original Celeste Classic cartridge.
 
-**Set original Celeste .p8** opens a local browser file picker. The chosen text `.p8` is validated and stored in that browser's IndexedDB. It is not placed in `.celproj` data and is never POSTed to `share.php`.
+**Set original Celeste .p8** opens a local browser file picker. The chosen text `.p8` is validated and stored in that browser's IndexedDB. It is not placed in `.celproj` data and is never POSTed to `share.php` or `community.php`.
 
 ## Required deployment files
 
@@ -65,9 +88,11 @@ The CI-generated GoDaddy ZIP contains this runtime structure:
 index.html
 bootstrap.js
 share.php
+community.php
 app.js
 interaction-fix.js
 styles.css
+community.css
 robots.txt
 THIRD-PARTY-NOTICES.md
 storage/
@@ -91,12 +116,14 @@ There is deliberately no `celeste.p8`.
 Use a separate document root such as:
 
 ```text
-public_html/celeste-studio/
+public_html/CEleste-Studio/
 ```
 
-`index.html`, `share.php`, and `storage/` must be directly inside that document root, not inside an extra ZIP-name folder.
+`index.html`, `share.php`, `community.php`, and `storage/` must be directly inside that document root, not inside an extra ZIP-name folder.
 
 A subdomain can point at the same document root.
+
+If the Git repository itself is already checked out directly inside the public web directory, updating that checkout updates the live files; a separate cPanel deployment target is not necessary unless you intentionally use one.
 
 ## Permissions
 
@@ -105,9 +132,20 @@ Normal cPanel permissions are usually sufficient:
 - directories: `755`
 - files: `644`
 
-PHP must be able to create files inside `storage/shares/` and `storage/rate/`. On typical GoDaddy shared hosting PHP runs as the account user, so extracting the ZIP from cPanel File Manager normally gives the correct ownership.
+PHP must be able to create runtime data inside `storage/`. On typical GoDaddy shared hosting PHP runs as the account user, so extracting the ZIP from cPanel File Manager or checking the repository out under the same account normally gives the correct ownership.
 
-If **Share project** stays disabled on the hosted site, open `share.php?health=1` in the browser. A working installation returns JSON with `"ok":true`. If it reports that storage is not writable, fix the ownership/permissions of `storage/` rather than making the entire site world-writable.
+Do not make the entire site world-writable. If storage is not writable, fix ownership/permissions on `storage/` instead.
+
+## Health checks
+
+After deployment, these URLs should both return JSON containing `"ok":true`:
+
+```text
+share.php?health=1
+community.php?health=1
+```
+
+If **Share project**, **Browse levels**, or **Publish level** remain disabled, test those health endpoints first.
 
 ## HTTPS
 
@@ -117,7 +155,7 @@ The included root `.htaccess` declares JavaScript/module/WebAssembly MIME types,
 
 ## Updating later
 
-Extract a newer GoDaddy ZIP over the existing Studio document root. Do not delete `storage/` if you want existing share links to keep working. Extracting over the directory should preserve existing `storage/shares/*.json` records.
+Extract a newer GoDaddy ZIP over the existing Studio document root, or update the live Git checkout. Do not delete `storage/` if you want existing unlisted share links, published community levels, reactions, comments, and counters to keep working.
 
 The browser-local original cartridge is stored in IndexedDB and is unaffected by server-file updates.
 
@@ -126,12 +164,16 @@ The browser-local original cartridge is stored in IndexedDB and is unaffected by
 After deployment:
 
 1. Open the HTTPS Studio URL and confirm the editor loads immediately with no password prompt.
-2. Confirm **Share project** becomes enabled.
-3. Make a small project, click **Share project**, and copy the generated link.
-4. Open that link in a private/incognito window and confirm the shared project loads.
-5. Confirm the shared-project dialog can download a `.celproj` copy.
-6. Click **Set original Celeste .p8** and choose a compatible text `.p8`.
-7. Run Preview and confirm the original-cart preview starts.
-8. Confirm `.8xv` export/import still works.
-9. Open DevTools > Network and verify the original Celeste `.p8` is never uploaded.
-10. Request a guessed path under `storage/` and confirm Apache returns access denied rather than the stored JSON.
+2. Open `share.php?health=1` and confirm `"ok":true`.
+3. Open `community.php?health=1` and confirm `"ok":true`.
+4. Confirm **Share project**, **Browse levels**, and **Publish level** become enabled.
+5. Publish a small active level and confirm it appears in **Browse levels**.
+6. Like it, dislike/unselect the reaction, and post a test comment.
+7. Test **Most popular**, **Newest**, **Most liked**, **Most downloaded**, and **Most commented** sorting.
+8. Copy the direct community level link and open it in a private/incognito window.
+9. Open the level in Studio and download its `.celproj`.
+10. Test an unlisted **Share project** link in a private/incognito window.
+11. Click **Set original Celeste .p8**, run Preview, and confirm the original-cart preview starts.
+12. Confirm `.8xv` export/import still works.
+13. Open DevTools > Network and verify the original Celeste `.p8` is never uploaded.
+14. Request a guessed path under `storage/` and confirm Apache returns access denied rather than stored JSON.
