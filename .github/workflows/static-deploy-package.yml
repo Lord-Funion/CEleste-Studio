@@ -58,12 +58,13 @@ jobs:
           test -s preview-runtime/fake08.js
           test -s preview-runtime/fake08.wasm
 
-      - name: Run Studio unit tests
+      - name: Run Studio unit and PHP integration tests
         run: |
           python3 -m py_compile serve-local.py
           php -l share.php
           php -l community.php
           npm test
+          npm run test:community-php
 
       - name: Prove the production original-cart patch loads in Fake-08
         run: npm run test:fake08
