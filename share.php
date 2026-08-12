@@ -133,6 +133,10 @@ if ($method === 'GET' && isset($_GET['health'])) {
 }
 
 if ($method === 'POST') {
+    $contentType = strtolower(trim(explode(';', (string)($_SERVER['CONTENT_TYPE'] ?? ''))[0]));
+    if ($contentType !== 'application/json') {
+        fail(415, 'Project sharing POST requests must use application/json.');
+    }
     $declaredLength = isset($_SERVER['CONTENT_LENGTH']) ? (int)$_SERVER['CONTENT_LENGTH'] : 0;
     if ($declaredLength > CELESTE_SHARE_MAX_BYTES) {
         fail(413, 'That project is too large to share.');

@@ -12,7 +12,7 @@ header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
 header('Cache-Control: no-store, max-age=0');
 
-function respond(int $status, array $payload): never
+function respond(int $status, array $payload)
 {
     http_response_code($status);
     header('Content-Type: application/json; charset=UTF-8');
@@ -20,7 +20,7 @@ function respond(int $status, array $payload): never
     exit;
 }
 
-function fail(int $status, string $message): never
+function fail(int $status, string $message)
 {
     respond($status, ['ok' => false, 'error' => $message]);
 }
@@ -63,8 +63,16 @@ function validate_id(string $id): string
 function read_json_file(string $path, $fallback)
 {
     if (!is_file($path)) return $fallback;
-    $raw = @file_get_contents($path);
-    if (!is_string($raw) || $raw === '') return $fallback;
+    $handle = @fopen($path, 'rb');
+    if ($handle === false) return $fallback;
+    $raw = '';
+    if (flock($handle, LOCK_SH)) {
+        $read = stream_get_contents($handle);
+        if (is_string($read)) $raw = $read;
+        flock($handle, LOCK_UN);
+    }
+    fclose($handle);
+    if ($raw === '') return $fallback;
     $decoded = json_decode($raw, true);
     return is_array($decoded) ? $decoded : $fallback;
 }
@@ -143,12 +151,24 @@ function rate_limit(string $action, int $limit): void
     });
 }
 
+function text_substr(string $text, int $max): string
+{
+    if (function_exists('mb_substr')) return mb_substr($text, 0, $max, 'UTF-8');
+    return substr($text, 0, $max);
+}
+
+function text_lower(string $text): string
+{
+    if (function_exists('mb_strtolower')) return mb_strtolower($text, 'UTF-8');
+    return strtolower($text);
+}
+
 function clean_text($value, int $max, string $fallback = ''): string
 {
     $text = trim((string)$value);
     $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text) ?? '';
     if ($text === '') return $fallback;
-    return mb_substr($text, 0, $max);
+    return text_substr($text, $max);
 }
 
 function validate_level_project(array $project): array
@@ -160,8 +180,40 @@ function validate_level_project(array $project): array
     if (!is_array($level) || !isset($level['rooms']) || !is_array($level['rooms']) || count($level['rooms']) < 1 || count($level['rooms']) > 32) {
         fail(422, 'The level must contain between 1 and 32 rooms.');
     }
+
+    $allowedEntities = [8,11,12,18,20,22,23,26,28,64,86,96,118,129,130,131];
     foreach ($level['rooms'] as $room) {
         if (!is_array($room)) fail(422, 'The level contains invalid room data.');
+        if ((int)($room['width'] ?? 0) !== 16 || (int)($room['height'] ?? 0) !== 16) {
+            fail(422, 'Community levels must use 16 by 16 rooms.');
+        }
+        if (!isset($room['tiles']) || !is_array($room['tiles']) || count($room['tiles']) !== 256) {
+            fail(422, 'Every room must contain exactly 256 map tiles.');
+        }
+        foreach ($room['tiles'] as $tile) {
+            if (!is_int($tile) || $tile < 0 || $tile > 127) fail(422, 'A room contains an invalid tile ID.');
+        }
+        if (isset($room['rotations'])) {
+            if (!is_array($room['rotations']) || count($room['rotations']) !== 256) fail(422, 'A room contains invalid rotation data.');
+            foreach ($room['rotations'] as $rotation) {
+                if (!is_int($rotation) || $rotation < 0 || $rotation > 3) fail(422, 'A room contains an invalid rotation value.');
+            }
+        }
+        $spawnX = (int)($room['spawnX'] ?? -1);
+        $spawnY = (int)($room['spawnY'] ?? -1);
+        if ($spawnX < 0 || $spawnX > 15 || $spawnY < 0 || $spawnY > 15) fail(422, 'A room contains an invalid player spawn.');
+        $entities = $room['entities'] ?? [];
+        if (!is_array($entities) || count($entities) > 48) fail(422, 'A room contains too many gameplay entities.');
+        foreach ($entities as $entity) {
+            if (!is_array($entity)) fail(422, 'A room contains invalid entity data.');
+            $type = $entity['type'] ?? null;
+            $x = $entity['x'] ?? null;
+            $y = $entity['y'] ?? null;
+            $flags = $entity['flags'] ?? 0;
+            if (!is_int($type) || !in_array($type, $allowedEntities, true)) fail(422, 'A room contains an unsupported entity type.');
+            if (!is_int($x) || !is_int($y) || $x < 0 || $x > 15 || $y < 0 || $y > 15) fail(422, 'A room contains an invalid entity position.');
+            if (!is_int($flags) || $flags < 0 || $flags > 255) fail(422, 'A room contains invalid entity flags.');
+        }
     }
     return $level;
 }
@@ -242,7 +294,7 @@ if ($method === 'GET' && isset($_GET['list'])) {
     $sort = strtolower((string)($_GET['sort'] ?? 'popular'));
     $allowed = ['popular', 'newest', 'likes', 'downloads', 'comments'];
     if (!in_array($sort, $allowed, true)) $sort = 'popular';
-    $query = mb_strtolower(trim((string)($_GET['q'] ?? '')));
+    $query = text_lower(trim((string)($_GET['q'] ?? '')));
     $limit = max(1, min(COMMUNITY_MAX_ITEMS_PER_PAGE, (int)($_GET['limit'] ?? 24)));
     $offset = max(0, (int)($_GET['offset'] ?? 0));
     $items = [];
@@ -251,7 +303,7 @@ if ($method === 'GET' && isset($_GET['list'])) {
         if (!$item || !isset($item['id'])) continue;
         $public = public_item($item, false);
         if ($query !== '') {
-            $haystack = mb_strtolower($public['title'] . ' ' . $public['author'] . ' ' . $public['publisher'] . ' ' . $public['description']);
+            $haystack = text_lower($public['title'] . ' ' . $public['author'] . ' ' . $public['publisher'] . ' ' . $public['description']);
             if (!str_contains($haystack, $query)) continue;
         }
         $items[] = $public;
@@ -305,6 +357,8 @@ if ($method === 'GET' && isset($_GET['id'])) {
 }
 
 if ($method === 'POST') {
+    $contentType = strtolower(trim(explode(';', (string)($_SERVER['CONTENT_TYPE'] ?? ''))[0]));
+    if ($contentType !== 'application/json') fail(415, 'Community POST requests must use application/json.');
     $declared = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
     if ($declared > COMMUNITY_MAX_BODY) fail(413, 'That request is too large.');
     $raw = file_get_contents('php://input');
