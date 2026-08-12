@@ -1,8 +1,8 @@
 DirectoryIndex index.html
 AddDefaultCharset UTF-8
 
-# Apache serves the editor normally. PHP is used only by share.php for
-# same-origin project sharing; no Node.js application server is required.
+# Apache serves the editor normally. PHP provides same-origin project sharing
+# and community APIs; no Node.js application server is required.
 <IfModule mod_mime.c>
   AddType text/javascript .js .mjs
   AddType application/wasm .wasm
