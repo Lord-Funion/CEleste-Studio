@@ -1,12 +1,33 @@
-# CEleste Studio 1.1.0
+# CEleste Studio 1.2.0
 
 CEleste Studio is a browser editor for CEleste custom levels and packs on the TI-84 Plus CE.
 
-The hosted editor is now public: **there is no Studio password gate**. The GoDaddy/cPanel build also supports shareable project links using a small same-origin PHP endpoint.
+The hosted editor is public: **there is no Studio password gate**. The GoDaddy/cPanel build supports both unlisted project sharing and a public Community Level Browser using small same-origin PHP endpoints.
 
-## Project sharing
+## Community Level Browser
 
-Click **Share project** to upload the current `.celproj` project data and receive a link such as `?share=<random-id>`.
+Click **Browse levels** to explore public community levels. The browser supports:
+
+- search by title, level author, publisher name, or description;
+- **Most popular**, **Newest**, **Most liked**, **Most downloaded**, and **Most commented** sorting;
+- likes and dislikes;
+- public comments;
+- view, download, comment, like, and dislike counts;
+- direct `?level=<random-id>` links;
+- **Open in Studio** to load a community level into the editor;
+- `.celproj` downloads.
+
+Click **Publish level** to publish the currently active level as an independent public copy. Later edits in your browser do not silently modify the already-published copy.
+
+Community data is served by `community.php` and stored under protected `storage/community/`. Community IDs are random 128-bit values and the endpoint applies request-size and basic per-IP action limits. No MySQL database is required.
+
+The popularity ranking is a discovery score based on likes, dislikes, downloads, comments, and views; it is intentionally lightweight rather than a fraud-proof ranking system.
+
+See `COMMUNITY.md` for community-specific details.
+
+## Unlisted project sharing
+
+Click **Share project** to upload the current `.celproj` project data and receive an unlisted link such as `?share=<random-id>`.
 
 - Opening the link loads a copy of that project into the visitor's browser autosave.
 - The visitor can edit it without changing the original shared copy.
@@ -16,7 +37,7 @@ Click **Share project** to upload the current `.celproj` project data and receiv
 - Stored project records live under `storage/`, whose included `.htaccess` blocks direct web access.
 - No MySQL database is required.
 
-The original Celeste Classic `.p8` cartridge is **never** part of a shared project. It remains browser-local in IndexedDB and is never POSTed to `share.php`.
+The original Celeste Classic `.p8` cartridge is **never** part of a shared or published project. It remains browser-local in IndexedDB and is never POSTed to `share.php` or `community.php`.
 
 ## Original-cartridge Preview
 
@@ -63,7 +84,9 @@ Some original Celeste entities are multi-sprite/custom-draw animations. If one o
 - Chest, fake-wall, big-chest and Climb Chest properties
 - Linked Silver Keys and stackable Silver Gate blocks with link groups 0–63
 - Browser autosave and `.celproj` project files
-- Shareable hosted project links
+- Public community publishing and browsing
+- Likes, dislikes, comments, popularity sorting, search, and download/view counters
+- Unlisted hosted project links
 - Import/export of CELV `.8xv` AppVars
 - Validation of room/entity limits and AppVar data
 
@@ -85,13 +108,13 @@ python serve-local.py
 
 It binds only to `127.0.0.1`. ES modules, IndexedDB, and WebAssembly work through localhost. Do not open `index.html` directly with `file://`.
 
-The local Python server does not execute PHP, so **Share project** is automatically disabled there. Project sharing is available on the PHP-enabled hosted build.
+The local Python server does not execute PHP, so **Share project**, **Browse levels**, and **Publish level** are automatically disabled there. Those features are available on the PHP-enabled hosted build.
 
 ## GoDaddy/cPanel hosting
 
-The hosted build needs ordinary Apache/cPanel hosting plus PHP for `share.php`. It does **not** require Node.js, Python, Ruby, MySQL, a background service, or WebSockets.
+The hosted build needs ordinary Apache/cPanel hosting plus PHP 8.x for `share.php` and `community.php`. It does **not** require Node.js, Python, Ruby, MySQL, a background service, or WebSockets.
 
-See `HOSTING-GODADDY.md` for deployment layout, permissions, and verification steps.
+See `HOSTING-GODADDY.md` for deployment layout, permissions, health checks, and verification steps.
 
 ## Testing
 
@@ -99,7 +122,7 @@ See `HOSTING-GODADDY.md` for deployment layout, permissions, and verification st
 npm test
 ```
 
-CI also runs `php -l share.php`, downloads the pinned Fake-08 browser runtime, and runs `npm run test:fake08`. The Fake-08 smoke test uses a synthetic compatible cart; no original Celeste cartridge is used in CI.
+CI syntax-checks both PHP endpoints, downloads the pinned Fake-08 browser runtime, and runs `npm run test:fake08`. The Fake-08 smoke test uses a synthetic compatible cart; no original Celeste cartridge is used in CI.
 
 ## Third-party/runtime notice
 
