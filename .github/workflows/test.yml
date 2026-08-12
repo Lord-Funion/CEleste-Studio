@@ -18,3 +18,4 @@ jobs:
       - run: php -l share.php
       - run: php -l community.php
       - run: npm test
+      - run: npm run test:community-php
