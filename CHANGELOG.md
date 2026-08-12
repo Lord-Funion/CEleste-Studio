@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.0 — 2026-08-12
+
+- Added a public Community Level Browser for published single levels.
+- Added sorting by most popular, newest, most liked, most downloaded, and most commented.
+- Added search across level title, author, publisher, and description.
+- Added likes, dislikes, comments, view counts, download counts, and popularity scoring.
+- Added direct community-level links using `?level=<id>`.
+- Added **Open in Studio** and `.celproj` download actions for community levels.
+- Added **Publish level** for the currently active level, with an independent public copy.
+- Added PHP-backed community storage with random IDs, request limits, per-IP action rate limits, and storage protected by the existing `storage/.htaccess`.
+- Added community regression tests and production-package validation.
+
 ## 1.1.0 — 2026-08-12
 
 - Removed the client-side Studio password gate; the hosted editor now loads directly.
