@@ -1,12 +1,11 @@
 {
   "name": "celeste-studio",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --check private-gate.js && node --check app.js && node --check interaction-fix.js && node --check lib/private-cart.mjs && node --check lib/pico8-cart.mjs && node --check lib/pico8-preview.mjs && node --test tests/*.test.mjs",
+    "test": "node --check bootstrap.js && node --check app.js && node --check interaction-fix.js && node --check lib/private-cart.mjs && node --check lib/pico8-cart.mjs && node --check lib/pico8-preview.mjs && node --test tests/*.test.mjs",
     "test:fake08": "node tests/fake08-smoke.mjs",
-    "serve": "python3 serve-local.py",
-    "password:hash": "node tools/hash-private-password.mjs"
+    "serve": "python3 serve-local.py"
   }
 }
