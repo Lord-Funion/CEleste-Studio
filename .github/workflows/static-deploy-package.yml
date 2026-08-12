@@ -1,4 +1,4 @@
-name: Private production packages
+name: Public production packages
 
 on:
   push:
@@ -25,7 +25,9 @@ jobs:
           set -euxo pipefail
           test -f .htaccess
           test -f index.html
-          test -f private-gate.js
+          test -f bootstrap.js
+          test -f share.php
+          test -f storage/.htaccess
           test -f app.js
           test -f interaction-fix.js
           test -f styles.css
@@ -38,6 +40,8 @@ jobs:
           test -f lib/pico8-preview.mjs
           test -f assets/pico8-atlas.png
           test -f THIRD-PARTY-NOTICES.md
+          test ! -f private-gate.js
+          test ! -f tools/hash-private-password.mjs
           test ! -f preview-runtime/celeste-preview.lua
           ! find . -type f \( -iname '*.p8' -o -iname '*.p8.png' \) -print | grep -q .
 
@@ -54,6 +58,7 @@ jobs:
       - name: Run Studio unit tests
         run: |
           python3 -m py_compile serve-local.py
+          php -l share.php
           npm test
 
       - name: Prove the production original-cart patch loads in Fake-08
@@ -62,27 +67,28 @@ jobs:
       - name: Build production packages
         run: |
           set -euxo pipefail
-          runtime=(
-            .htaccess index.html private-gate.js app.js interaction-fix.js styles.css robots.txt
+          common=(
+            .htaccess index.html bootstrap.js app.js interaction-fix.js styles.css robots.txt
             lib/format.mjs lib/private-cart.mjs lib/pico8-cart.mjs lib/pico8-preview.mjs
             assets/pico8-atlas.png preview-runtime/fake08.js preview-runtime/fake08.wasm
             THIRD-PARTY-NOTICES.md
           )
-          zip -9 CEleste-Studio-Private-GoDaddy.zip "${runtime[@]}" HOSTING-GODADDY.md PRIVATE-PREVIEW.md
-          zip -9 CEleste-Studio-Private-Local.zip "${runtime[@]}" serve-local.py "Start Private Studio.bat" README.md PRIVATE-PREVIEW.md
-          sha256sum CEleste-Studio-Private-GoDaddy.zip > CEleste-Studio-Private-GoDaddy.sha256
-          sha256sum CEleste-Studio-Private-Local.zip > CEleste-Studio-Private-Local.sha256
-          unzip -l CEleste-Studio-Private-GoDaddy.zip
-          unzip -l CEleste-Studio-Private-Local.zip
-          ! unzip -l CEleste-Studio-Private-GoDaddy.zip | grep -Ei '\.p8(\.png)?$'
-          ! unzip -l CEleste-Studio-Private-Local.zip | grep -Ei '\.p8(\.png)?$'
+          hosted=("${common[@]}" share.php storage/.htaccess)
+          zip -9 CEleste-Studio-GoDaddy.zip "${hosted[@]}" HOSTING-GODADDY.md PRIVATE-PREVIEW.md
+          zip -9 CEleste-Studio-Local.zip "${common[@]}" serve-local.py "Start Private Studio.bat" README.md PRIVATE-PREVIEW.md
+          sha256sum CEleste-Studio-GoDaddy.zip > CEleste-Studio-GoDaddy.sha256
+          sha256sum CEleste-Studio-Local.zip > CEleste-Studio-Local.sha256
+          unzip -l CEleste-Studio-GoDaddy.zip
+          unzip -l CEleste-Studio-Local.zip
+          ! unzip -l CEleste-Studio-GoDaddy.zip | grep -Ei '\.p8(\.png)?$'
+          ! unzip -l CEleste-Studio-Local.zip | grep -Ei '\.p8(\.png)?$'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: CEleste-Studio-Private-Production
+          name: CEleste-Studio-Production
           path: |
-            CEleste-Studio-Private-GoDaddy.zip
-            CEleste-Studio-Private-GoDaddy.sha256
-            CEleste-Studio-Private-Local.zip
-            CEleste-Studio-Private-Local.sha256
+            CEleste-Studio-GoDaddy.zip
+            CEleste-Studio-GoDaddy.sha256
+            CEleste-Studio-Local.zip
+            CEleste-Studio-Local.sha256
           if-no-files-found: error
