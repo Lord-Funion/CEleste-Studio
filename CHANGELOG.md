@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0 — 2026-08-12
+
+- Removed the client-side Studio password gate; the hosted editor now loads directly.
+- Added PHP-backed project sharing with random share links and `.celproj` downloads.
+- Added automatic loading of `?share=<id>` links into browser autosave without mutating the stored shared copy.
+- Added protected server-side project storage, upload-size validation, and a basic per-IP sharing rate limit.
+- Kept original Celeste `.p8` cartridges browser-local; project sharing never uploads or stores them.
+- Updated the GoDaddy/cPanel production package to include `share.php` and protected storage while keeping MySQL optional/unneeded.
+
 ## 1.0.0 — 2026-08-07
 
 - First complete CEleste Studio release.

@@ -1,26 +1,39 @@
-# CEleste Studio 1.0.0 — private production build
+# CEleste Studio 1.1.0
 
-CEleste Studio is a static browser editor for CEleste custom levels and packs on the TI-84 Plus CE.
+CEleste Studio is a browser editor for CEleste custom levels and packs on the TI-84 Plus CE.
 
-This build is designed primarily for **private/local use**. It remains deployable unchanged to ordinary static Apache/cPanel hosting such as GoDaddy Web Hosting if that becomes desirable later.
+The hosted editor is now public: **there is no Studio password gate**. The GoDaddy/cPanel build also supports shareable project links using a small same-origin PHP endpoint.
 
-## What is different about Preview
+## Project sharing
 
-Studio no longer contains a hand-written substitute for Celeste Classic player physics.
+Click **Share project** to upload the current `.celproj` project data and receive a link such as `?share=<random-id>`.
 
-The private preview path works like this:
+- Opening the link loads a copy of that project into the visitor's browser autosave.
+- The visitor can edit it without changing the original shared copy.
+- The share dialog also exposes a `.celproj` download for the shared project.
+- Share IDs are 128-bit random values.
+- The PHP endpoint accepts CEleste project JSON only, with a 4 MiB request limit and a basic per-IP upload rate limit.
+- Stored project records live under `storage/`, whose included `.htaccess` blocks direct web access.
+- No MySQL database is required.
 
-1. Unlock Studio with the JavaScript password gate.
-2. Choose your own text-format original Celeste Classic `celeste.p8` using **Set original Celeste .p8**.
-3. The browser validates it as a compatible Celeste cart and stores it only in that browser's IndexedDB.
-4. When Preview is opened, Studio clones that browser-local cart in memory, replaces its map with the current Studio level, and appends the minimum custom-level glue required by CEleste features.
-5. The resulting private modified cart runs in Fake-08 WebAssembly.
+The original Celeste Classic `.p8` cartridge is **never** part of a shared project. It remains browser-local in IndexedDB and is never POSTed to `share.php`.
 
-The original cart is **never included in this repository, the CI artifacts, the local ZIP, or the GoDaddy ZIP**, and it is never uploaded by Studio.
+## Original-cartridge Preview
+
+Studio does not contain a hand-written substitute for Celeste Classic player physics.
+
+The preview path works like this:
+
+1. Choose your own text-format original Celeste Classic `celeste.p8` using **Set original Celeste .p8**.
+2. The browser validates it as a compatible Celeste cart and stores it only in that browser's IndexedDB.
+3. When Preview is opened, Studio clones that browser-local cart in memory, replaces its map with the current Studio level, and appends the minimum custom-level glue required by CEleste features.
+4. The resulting modified cart runs in Fake-08 WebAssembly.
+
+The original cart is **never included in this repository, CI artifacts, the local ZIP, or the GoDaddy ZIP**, and it is never uploaded by Studio.
 
 Before a Climb Chest changes movement, Madeline's normal movement/jump/dash/wall-jump code executes from the supplied original cartridge. The Studio patch layers custom level behavior around it rather than replacing the player implementation.
 
-## Private preview additions
+## Preview additions
 
 The original-cart patch supports:
 
@@ -50,21 +63,19 @@ Some original Celeste entities are multi-sprite/custom-draw animations. If one o
 - Chest, fake-wall, big-chest and Climb Chest properties
 - Linked Silver Keys and stackable Silver Gate blocks with link groups 0–63
 - Browser autosave and `.celproj` project files
+- Shareable hosted project links
 - Import/export of CELV `.8xv` AppVars
 - Validation of room/entity limits and AppVar data
-- Static-site operation: no server application, database, PHP, or Node runtime required
 
-## Run privately on your computer
+## Run locally
 
-The production local package includes `serve-local.py` and **Start Private Studio.bat**.
+The local package includes `serve-local.py` and **Start CEleste Studio.bat**.
 
 On Windows, double-click:
 
 ```text
-Start Private Studio.bat
+Start CEleste Studio.bat
 ```
-
-It binds only to `127.0.0.1`, opens Studio in the default browser, and does not expose the editor to other computers on the network.
 
 Or run:
 
@@ -72,33 +83,15 @@ Or run:
 python serve-local.py
 ```
 
-ES modules, IndexedDB, WebAssembly, and the password hash work correctly through localhost. Do not open `index.html` directly with `file://`.
+It binds only to `127.0.0.1`. ES modules, IndexedDB, and WebAssembly work through localhost. Do not open `index.html` directly with `file://`.
 
-## JavaScript password gate
+The local Python server does not execute PHP, so **Share project** is automatically disabled there. Project sharing is available on the PHP-enabled hosted build.
 
-`private-gate.js` defines:
+## GoDaddy/cPanel hosting
 
-```js
-window.celestePrivatePassword(password)
-```
+The hosted build needs ordinary Apache/cPanel hosting plus PHP for `share.php`. It does **not** require Node.js, Python, Ruby, MySQL, a background service, or WebSockets.
 
-The plaintext password is not stored in the repository; the file contains only its SHA-256 digest. The gate prevents the editor modules from loading until the function succeeds.
-
-This is deliberately a **client-side convenience/privacy gate**, not cryptographic server authentication. If this build is ever placed at a publicly reachable URL, someone who deliberately requests the static files can bypass a JavaScript-only gate. The original Celeste cart is still protected from that problem because it never exists on the web server.
-
-To choose another password, generate a SHA-256 value locally:
-
-```sh
-node tools/hash-private-password.mjs "your new password"
-```
-
-Then replace `EXPECTED_SHA256` in `private-gate.js` with that output.
-
-## Future GoDaddy compatibility
-
-The CI workflow also produces a static GoDaddy/cPanel ZIP. It contains only Studio, Fake-08, and the gate—never the Celeste cartridge. Uploading it requires no Node.js on the hosting account.
-
-See `HOSTING-GODADDY.md` for the future deployment layout and security caveat.
+See `HOSTING-GODADDY.md` for deployment layout, permissions, and verification steps.
 
 ## Testing
 
@@ -106,7 +99,7 @@ See `HOSTING-GODADDY.md` for the future deployment layout and security caveat.
 npm test
 ```
 
-The deployment CI additionally downloads the pinned Fake-08 browser runtime and runs `npm run test:fake08`. That smoke test patches a synthetic Celeste-compatible cart through the same production code path, loads the resulting `.p8` into Fake-08, verifies 30 Hz execution, and steps frames. No original Celeste cartridge is used in CI.
+CI also runs `php -l share.php`, downloads the pinned Fake-08 browser runtime, and runs `npm run test:fake08`. The Fake-08 smoke test uses a synthetic compatible cart; no original Celeste cartridge is used in CI.
 
 ## Third-party/runtime notice
 

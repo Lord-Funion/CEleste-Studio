@@ -1,7 +1,8 @@
 DirectoryIndex index.html
 AddDefaultCharset UTF-8
 
-# Static runtime only: no Node.js, PHP, database, rewrite router, or backend.
+# Apache serves the editor normally. PHP is used only by share.php for
+# same-origin project sharing; no Node.js application server is required.
 <IfModule mod_mime.c>
   AddType text/javascript .js .mjs
   AddType application/wasm .wasm
@@ -10,8 +11,8 @@ AddDefaultCharset UTF-8
 </IfModule>
 
 <IfModule mod_headers.c>
-  # Application code should update immediately; immutable binary assets may cache.
-  <FilesMatch "\.(html|css|js|mjs)$">
+  # Application/API code should update immediately; immutable binary assets may cache.
+  <FilesMatch "\.(html|css|js|mjs|php)$">
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
   <FilesMatch "\.(png|svg|webp|ico|wasm)$">
