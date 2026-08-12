@@ -3,19 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="CEleste Studio — TI-84 Plus CE level and pack editor with shareable projects.">
+  <meta name="description" content="CEleste Studio — TI-84 Plus CE level and pack editor with a community level browser.">
   <title>CEleste Studio</title>
-  <link rel="stylesheet" href="styles.css?v=20260812-public-sharing">
+  <link rel="stylesheet" href="styles.css?v=20260812-community-v1">
 </head>
 <body>
   <header class="topbar">
     <div>
-      <h1>CEleste Studio <span>1.1.0</span></h1>
+      <h1>CEleste Studio <span>1.2.0</span></h1>
       <p>TI-84 Plus CE level and pack editor</p>
     </div>
     <nav class="toolbar" aria-label="Project actions">
       <button id="newProject">New</button>
       <button id="saveProject">Save project</button>
+      <button id="communityBrowse" disabled>Browse levels</button>
+      <button id="communityPublish" disabled>Publish level</button>
       <button id="shareProject" disabled>Share project</button>
       <label class="button">Open project<input id="openProject" type="file" accept=".json,.celproj" hidden></label>
       <label class="button">Import .8xv<input id="import8xv" type="file" accept=".8xv" multiple hidden></label>
@@ -111,6 +113,42 @@
     <p id="previewStatus"></p>
   </dialog>
 
+  <dialog id="communityDialog">
+    <div class="dialog-head">
+      <div><h2>Community Level Browser</h2><p>Find levels, sort by popularity, react, comment, download, or open them directly in Studio.</p></div>
+      <button id="communityClose">Close</button>
+    </div>
+    <div class="community-controls">
+      <input id="communitySearch" type="search" placeholder="Search levels, authors, creators…" aria-label="Search community levels">
+      <select id="communitySort" aria-label="Sort community levels">
+        <option value="popular">Most popular</option>
+        <option value="newest">Newest</option>
+        <option value="likes">Most liked</option>
+        <option value="downloads">Most downloaded</option>
+        <option value="comments">Most commented</option>
+      </select>
+      <button id="communityRefresh">Refresh</button>
+    </div>
+    <div class="community-layout">
+      <section class="community-results">
+        <p id="communityStatus" class="hint">Loading…</p>
+        <div id="communityList" class="community-list"></div>
+        <button id="communityMore" hidden>Load more</button>
+      </section>
+      <section id="communityDetail" class="community-detail">
+        <div class="community-empty">Select a level to see its details, ratings, and comments.</div>
+      </section>
+    </div>
+  </dialog>
+
+  <dialog id="publishDialog">
+    <div class="dialog-head"><div><h2>Publish current level</h2><p id="publishSummary">Publish the active level to the public Community Level Browser.</p></div><button id="publishClose">Close</button></div>
+    <label>Community display name<input id="publisherName" maxlength="32" autocomplete="nickname" placeholder="Your name"></label>
+    <p class="hint">Publishing creates a public copy of the active level. Future edits in your browser do not change the published copy.</p>
+    <div class="dialog-actions"><button id="publishConfirm" class="primary">Publish level</button></div>
+    <p id="publishStatus" class="hint"></p>
+  </dialog>
+
   <dialog id="shareDialog">
     <div class="dialog-head"><div><h2 id="shareTitle">Share project</h2><p id="shareMessage"></p></div><button id="shareClose">Close</button></div>
     <div id="shareLinkWrap" class="share-link-wrap" hidden>
@@ -121,6 +159,6 @@
   </dialog>
 
   <dialog id="messageDialog"><h2 id="messageTitle"></h2><pre id="messageBody"></pre><button id="messageClose">Close</button></dialog>
-  <script type="module" src="bootstrap.js?v=20260812-public-sharing-v1"></script>
+  <script type="module" src="bootstrap.js?v=20260812-community-v1"></script>
 </body>
 </html>
