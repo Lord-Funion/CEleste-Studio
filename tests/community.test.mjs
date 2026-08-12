@@ -2,16 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
-test('community browser UI exposes browsing, publishing, sorting, reactions and comments', async () => {
+test('community browser UI exposes browsing, publishing and sorting controls', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   assert.match(html, /id="communityBrowse"/);
   assert.match(html, /id="communityPublish"/);
+  assert.match(html, /id="communityDetail"/);
   assert.match(html, /value="popular"/);
   assert.match(html, /value="newest"/);
   assert.match(html, /value="likes"/);
   assert.match(html, /value="downloads"/);
   assert.match(html, /value="comments"/);
-  assert.match(html, /id="communityCommentBody"|community-comment-form/);
 });
 
 test('community bootstrap supports list, publish, vote, comment, download and deep links', async () => {
@@ -20,6 +20,8 @@ test('community bootstrap supports list, publish, vote, comment, download and de
   assert.match(js, /action: 'publish'/);
   assert.match(js, /action: 'vote'/);
   assert.match(js, /action: 'comment'/);
+  assert.match(js, /community-comment-form/);
+  assert.match(js, /communityCommentBody/);
   assert.match(js, /download: 1/);
   assert.match(js, /searchParams\.set\('level'/);
   assert.match(js, /Most popular|sort/);
