@@ -34,6 +34,7 @@ jobs:
           test -f robots.txt
           test -f serve-local.py
           test -f "Start Private Studio.bat"
+          test -f PREVIEW.md
           test -f lib/format.mjs
           test -f lib/private-cart.mjs
           test -f lib/pico8-cart.mjs
@@ -74,8 +75,8 @@ jobs:
             THIRD-PARTY-NOTICES.md
           )
           hosted=("${common[@]}" share.php storage/.htaccess)
-          zip -9 CEleste-Studio-GoDaddy.zip "${hosted[@]}" HOSTING-GODADDY.md PRIVATE-PREVIEW.md
-          zip -9 CEleste-Studio-Local.zip "${common[@]}" serve-local.py "Start Private Studio.bat" README.md PRIVATE-PREVIEW.md
+          zip -9 CEleste-Studio-GoDaddy.zip "${hosted[@]}" HOSTING-GODADDY.md PREVIEW.md
+          zip -9 CEleste-Studio-Local.zip "${common[@]}" serve-local.py "Start Private Studio.bat" README.md PREVIEW.md
           sha256sum CEleste-Studio-GoDaddy.zip > CEleste-Studio-GoDaddy.sha256
           sha256sum CEleste-Studio-Local.zip > CEleste-Studio-Local.sha256
           unzip -l CEleste-Studio-GoDaddy.zip
