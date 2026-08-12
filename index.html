@@ -1,40 +1,22 @@
 <!doctype html>
-<html lang="en" data-theme="dark" class="private-locked">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Private CEleste Studio — TI-84 Plus CE level and pack editor.">
-  <title>CEleste Studio — Private</title>
-  <link rel="stylesheet" href="styles.css?v=20260808-viewport-fit">
-  <style>
-    .private-locked body>header,.private-locked body>main,.private-locked body>dialog{visibility:hidden!important}
-    #privateGate{position:fixed;inset:0;z-index:999999;background:#0b0911;color:#fff;display:grid;place-items:center;font:16px system-ui,sans-serif}
-    #privateGate .card{width:min(420px,calc(100vw - 32px));background:#1c1726;border:1px solid #4d3f62;border-radius:14px;padding:24px;box-shadow:0 20px 60px #0008}
-    #privateGate h1{margin:0 0 8px;font-size:24px}#privateGate p{color:#c8bdd8;line-height:1.45}
-    #privateGate input{box-sizing:border-box;width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid #66557d;background:#0d0a12;color:#fff;font-size:16px}
-    #privateGate button{width:100%;padding:12px;border:0;border-radius:8px;background:#b879ff;color:#100817;font-weight:800;cursor:pointer}
-    #privateGateError{min-height:1.3em;color:#ff7b91!important;margin-bottom:0}
-  </style>
+  <meta name="description" content="CEleste Studio — TI-84 Plus CE level and pack editor with shareable projects.">
+  <title>CEleste Studio</title>
+  <link rel="stylesheet" href="styles.css?v=20260812-public-sharing">
 </head>
 <body>
-  <div id="privateGate">
-    <div class="card">
-      <h1>Private CEleste Studio</h1>
-      <p>This personal build is locked before the editor loads. The original Celeste cartridge is never stored on the server.</p>
-      <input id="privatePassword" type="password" autocomplete="current-password" placeholder="Password" aria-label="Private Studio password">
-      <button id="privateGateSubmit">Unlock Studio</button>
-      <p id="privateGateError"></p>
-    </div>
-  </div>
-
   <header class="topbar">
     <div>
-      <h1>CEleste Studio <span>1.0.0 private</span></h1>
+      <h1>CEleste Studio <span>1.1.0</span></h1>
       <p>TI-84 Plus CE level and pack editor</p>
     </div>
     <nav class="toolbar" aria-label="Project actions">
       <button id="newProject">New</button>
       <button id="saveProject">Save project</button>
+      <button id="shareProject" disabled>Share project</button>
       <label class="button">Open project<input id="openProject" type="file" accept=".json,.celproj" hidden></label>
       <label class="button">Import .8xv<input id="import8xv" type="file" accept=".8xv" multiple hidden></label>
       <button id="exportLevel" class="primary">Export level .8xv</button>
@@ -107,7 +89,7 @@
         <div id="pieceOptions"></div>
         <button id="setSpawn">Set player spawn</button>
         <p class="hint">Press <kbd>R</kbd> to rotate clockwise, <kbd>Shift+R</kbd> for counter-clockwise. Rotation is stored independently and exports exactly to the calculator.</p>
-        <p class="hint">The private preview runs your own original Celeste Classic .p8 cartridge. Normal Celeste movement therefore comes from the original game code, not Studio JavaScript.</p>
+        <p class="hint">The browser preview runs your own original Celeste Classic .p8 cartridge. Normal Celeste movement therefore comes from the original game code, not Studio JavaScript.</p>
         <p class="hint">Rooms finish by exiting through the top edge. The summit flag is optional.</p>
       </section>
       <section>
@@ -129,7 +111,16 @@
     <p id="previewStatus"></p>
   </dialog>
 
+  <dialog id="shareDialog">
+    <div class="dialog-head"><div><h2 id="shareTitle">Share project</h2><p id="shareMessage"></p></div><button id="shareClose">Close</button></div>
+    <div id="shareLinkWrap" class="share-link-wrap" hidden>
+      <label>Share link<input id="shareLink" readonly aria-label="Project share link"></label>
+      <button id="shareCopy">Copy link</button>
+    </div>
+    <a id="shareDownload" class="button share-download" hidden>Download .celproj</a>
+  </dialog>
+
   <dialog id="messageDialog"><h2 id="messageTitle"></h2><pre id="messageBody"></pre><button id="messageClose">Close</button></dialog>
-  <script src="private-gate.js?v=20260808-private-original-cart"></script>
+  <script type="module" src="bootstrap.js?v=20260812-public-sharing-v1"></script>
 </body>
 </html>
