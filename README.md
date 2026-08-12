@@ -69,12 +69,12 @@ Some original Celeste entities are multi-sprite/custom-draw animations. If one o
 
 ## Run locally
 
-The local package includes `serve-local.py` and **Start Private Studio.bat**. The name refers to the local-only server binding, not a password.
+The local package includes `serve-local.py` and **Start CEleste Studio.bat**.
 
 On Windows, double-click:
 
 ```text
-Start Private Studio.bat
+Start CEleste Studio.bat
 ```
 
 Or run:
