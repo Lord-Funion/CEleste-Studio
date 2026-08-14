@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 
 test('hosted Studio is public and bootstraps without a password gate', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-  assert.match(html, /id="shareProject"/);
+  assert.doesNotMatch(html, /id="shareProject"/);
   assert.match(html, /bootstrap\.js/);
   assert.doesNotMatch(html, /privateGate|privatePassword|private-gate\.js/);
 });

@@ -2,7 +2,7 @@
 
 CEleste Studio is a browser editor for CEleste custom levels and packs on the TI-84 Plus CE.
 
-The hosted editor is public: **there is no Studio password gate**. The GoDaddy/cPanel build supports both unlisted project sharing and a public Community Level Browser using small same-origin PHP endpoints.
+The hosted editor is public: **there is no Studio password gate**. The GoDaddy/cPanel build supports a public Community Level Browser using a small same-origin PHP endpoint. Older unlisted `?share=` links remain readable for backwards compatibility, but Studio no longer exposes a Share Project button.
 
 ## Community Level Browser
 
@@ -25,9 +25,9 @@ The popularity ranking is a discovery score based on likes, dislikes, downloads,
 
 See `COMMUNITY.md` for community-specific details.
 
-## Unlisted project sharing
+## Legacy unlisted project links
 
-Click **Share project** to upload the current `.celproj` project data and receive an unlisted link such as `?share=<random-id>`.
+Studio no longer exposes a **Share project** button. Existing `?share=<random-id>` links can still be opened so older links do not break.
 
 - Opening the link loads a copy of that project into the visitor's browser autosave.
 - The visitor can edit it without changing the original shared copy.
@@ -86,7 +86,6 @@ Some original Celeste entities are multi-sprite/custom-draw animations. If one o
 - Browser autosave and `.celproj` project files
 - Public community publishing and browsing
 - Likes, dislikes, comments, popularity sorting, search, and download/view counters
-- Unlisted hosted project links
 - Import/export of CELV `.8xv` AppVars
 - Validation of room/entity limits and AppVar data
 
@@ -108,7 +107,7 @@ python serve-local.py
 
 It binds only to `127.0.0.1`. ES modules, IndexedDB, and WebAssembly work through localhost. Do not open `index.html` directly with `file://`.
 
-The local Python server does not execute PHP, so **Share project**, **Browse levels**, and **Publish level** are automatically disabled there. Those features are available on the PHP-enabled hosted build.
+The local Python server does not execute PHP, so **Browse levels** and **Publish level** are automatically disabled there. Those community features are available on the PHP-enabled hosted build.
 
 ## GoDaddy/cPanel hosting
 

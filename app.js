@@ -269,7 +269,9 @@ $('addLevel').onclick=()=>{pushHistory();project.levels.push(blankLevel(project.
 $('addRoom').onclick=()=>{pushHistory();currentLevel().rooms.push(blankRoom());project.activeRoom=currentLevel().rooms.length-1;commit();renderAll();};
 $('duplicateRoom').onclick=()=>{pushHistory();const r=currentRoom();const copy={...structuredClone(r),id:idFor('room-copy'),tiles:r.tiles.slice(),rotations:r.rotations.slice()};currentLevel().rooms.splice(project.activeRoom+1,0,copy);project.activeRoom++;commit();renderAll();};
 $('deleteRoom').onclick=()=>{if(currentLevel().rooms.length===1)return showMessage('Cannot delete room','Every level must contain at least one room.');pushHistory();currentLevel().rooms.splice(project.activeRoom,1);project.activeRoom=Math.max(0,project.activeRoom-1);commit();renderAll();};
+function switchRoom(d){const rooms=currentLevel().rooms,i=project.activeRoom,n=Math.max(0,Math.min(rooms.length-1,i+d));if(n===i)return;project.activeRoom=n;commit();renderAll();}
 function moveRoom(d){const rooms=currentLevel().rooms,i=project.activeRoom,n=i+d;if(n<0||n>=rooms.length)return;pushHistory();[rooms[i],rooms[n]]=[rooms[n],rooms[i]];project.activeRoom=n;commit();renderAll();}
+$('previousRoom').onclick=()=>switchRoom(-1);$('nextRoom').onclick=()=>switchRoom(1);
 $('moveRoomUp').onclick=()=>moveRoom(-1);$('moveRoomDown').onclick=()=>moveRoom(1);
 
 $('newProject').onclick=()=>{if(confirm('Create a new project? The current autosave will be replaced.')){project=freshProject();history=[];future=[];commit();renderAll();}};
@@ -291,7 +293,10 @@ $('messageClose').onclick=()=>$('messageDialog').close();
 
 window.addEventListener('keydown',e=>{
   if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();$('saveProject').click();return;}
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();return;}
+  if(e.key==='['&&!$('previewDialog').open){e.preventDefault();switchRoom(-1);return;}
+  if(e.key===']'&&!$('previewDialog').open){e.preventDefault();switchRoom(1);return;}
   if(e.key.toLowerCase()==='r'&&!$('previewDialog').open){e.preventDefault();rotateSelected(!e.shiftKey);return;}
   const map={b:'pencil',e:'eraser',f:'fill',i:'eyedropper'};if(map[e.key.toLowerCase()]){tool=map[e.key.toLowerCase()];specialMode=null;updateToolButtons();renderPalette();}
 });
