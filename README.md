@@ -2,7 +2,7 @@
 
 CEleste Studio is a browser editor for CEleste custom levels and packs on the TI-84 Plus CE.
 
-The hosted editor is public: **there is no Studio password gate**. The GoDaddy/cPanel build includes a public Community Level Browser using a small same-origin PHP endpoint.
+The hosted editor is public: **there is no Studio password gate**. The GoDaddy/cPanel build supports a public Community Level Browser using a small same-origin PHP endpoint. Older unlisted `?share=` links remain readable for backwards compatibility, but Studio no longer exposes a Share Project button.
 
 ## Community Level Browser
 
@@ -25,12 +25,9 @@ The popularity ranking is a discovery score based on likes, dislikes, downloads,
 
 See `COMMUNITY.md` for community-specific details.
 
-## Legacy share-link compatibility
+## Legacy unlisted project links
 
-The Studio toolbar no longer creates unlisted project-share links. Existing
-`?share=<random-id>` links still open so previously shared work is not stranded.
-Use **Save project** to download a portable `.celproj`, or **Publish level** for
-the public Community Level Browser.
+Studio no longer exposes a **Share project** button. Existing `?share=<random-id>` links can still be opened so older links do not break.
 
 The original Celeste Classic `.p8` cartridge is **never** part of a legacy shared or published project. It remains browser-local in IndexedDB and is never POSTed to `share.php` or `community.php`.
 
@@ -105,7 +102,7 @@ python serve-local.py
 
 It binds only to `127.0.0.1`. ES modules, IndexedDB, and WebAssembly work through localhost. Do not open `index.html` directly with `file://`.
 
-The local Python server does not execute PHP, so **Browse levels** and **Publish level** are automatically disabled there. Those features are available on the PHP-enabled hosted build.
+The local Python server does not execute PHP, so **Browse levels** and **Publish level** are automatically disabled there. Those community features are available on the PHP-enabled hosted build.
 
 ## GoDaddy/cPanel hosting
 
