@@ -1,6 +1,6 @@
 # GoDaddy/cPanel deployment
 
-CEleste Studio 1.2.0 can run on ordinary GoDaddy Web Hosting/cPanel. The editor itself is browser JavaScript; PHP provides unlisted project sharing and the public Community Level Browser.
+CEleste Studio 1.3.0 can run on ordinary GoDaddy Web Hosting/cPanel. The editor itself is browser JavaScript; PHP provides legacy share-link compatibility and the public Community Level Browser.
 
 ## What the hosting account needs
 
@@ -29,7 +29,7 @@ The hosted Studio is public. `index.html` loads the editor directly through `boo
 
 `robots.txt` and the `X-Robots-Tag` header still discourage indexing. They are not authentication.
 
-## Unlisted project sharing
+## Legacy share links
 
 `share.php` stores CEleste project JSON under:
 
@@ -48,7 +48,10 @@ The endpoint:
 - never receives the browser-local original Celeste cartridge;
 - does not require a database.
 
-Anyone who has an unlisted share link can open that shared project, so treat the link itself as the access token.
+Studio no longer exposes a button for creating new project-share links. The
+endpoint remains deployed so existing links keep working. Anyone who has an
+older unlisted link can open that project, so treat the link itself as the
+access token.
 
 ## Community Level Browser
 
@@ -145,7 +148,7 @@ share.php?health=1
 community.php?health=1
 ```
 
-If **Share project**, **Browse levels**, or **Publish level** remain disabled, test those health endpoints first.
+If **Browse levels** or **Publish level** remain disabled, test the community health endpoint first.
 
 ## HTTPS
 
@@ -166,13 +169,13 @@ After deployment:
 1. Open the HTTPS Studio URL and confirm the editor loads immediately with no password prompt.
 2. Open `share.php?health=1` and confirm `"ok":true`.
 3. Open `community.php?health=1` and confirm `"ok":true`.
-4. Confirm **Share project**, **Browse levels**, and **Publish level** become enabled.
+4. Confirm **Browse levels** and **Publish level** become enabled and that no project-share button appears.
 5. Publish a small active level and confirm it appears in **Browse levels**.
 6. Like it, dislike/unselect the reaction, and post a test comment.
 7. Test **Most popular**, **Newest**, **Most liked**, **Most downloaded**, and **Most commented** sorting.
 8. Copy the direct community level link and open it in a private/incognito window.
 9. Open the level in Studio and download its `.celproj`.
-10. Test an unlisted **Share project** link in a private/incognito window.
+10. If legacy share data exists, test an older unlisted link in a private/incognito window.
 11. Click **Set original Celeste .p8**, run Preview, and confirm the original-cart preview starts.
 12. Confirm `.8xv` export/import still works.
 13. Open DevTools > Network and verify the original Celeste `.p8` is never uploaded.

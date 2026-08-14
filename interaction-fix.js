@@ -41,7 +41,7 @@ document.addEventListener('click', event => {
 // additional bubbling key handlers. Text fields still behave normally; Escape
 // leaves a text field and returns focus to the editor.
 window.addEventListener('keydown', event => {
-  if (previewDialog?.open) return;
+  if (previewDialog?.open || document.querySelector('dialog[open]')) return;
 
   if (isEditableTarget(event.target)) {
     if (event.code === 'Escape' || event.key === 'Escape') {

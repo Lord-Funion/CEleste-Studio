@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 — 2026-08-14
+
+- Removed the new-project sharing button while retaining compatibility for existing share links.
+- Added duplicate and delete actions for levels.
+- Added fit-to-workspace zoom, an optional grid, and persistent zoom/theme/grid preferences.
+- Added visible browser-local autosave feedback and Alt+Arrow room/level navigation.
+- Prevented eyedropper drags and other no-op canvas actions from creating accidental paint strokes or useless undo entries.
+- Disabled unavailable room actions and added clearer move controls.
+
 ## 1.2.0 — 2026-08-12
 
 - Added a public Community Level Browser for published single levels.

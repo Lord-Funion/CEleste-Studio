@@ -1,8 +1,8 @@
-# CEleste Studio 1.2.0
+# CEleste Studio 1.3.0
 
 CEleste Studio is a browser editor for CEleste custom levels and packs on the TI-84 Plus CE.
 
-The hosted editor is public: **there is no Studio password gate**. The GoDaddy/cPanel build supports both unlisted project sharing and a public Community Level Browser using small same-origin PHP endpoints.
+The hosted editor is public: **there is no Studio password gate**. The GoDaddy/cPanel build includes a public Community Level Browser using a small same-origin PHP endpoint.
 
 ## Community Level Browser
 
@@ -25,19 +25,14 @@ The popularity ranking is a discovery score based on likes, dislikes, downloads,
 
 See `COMMUNITY.md` for community-specific details.
 
-## Unlisted project sharing
+## Legacy share-link compatibility
 
-Click **Share project** to upload the current `.celproj` project data and receive an unlisted link such as `?share=<random-id>`.
+The Studio toolbar no longer creates unlisted project-share links. Existing
+`?share=<random-id>` links still open so previously shared work is not stranded.
+Use **Save project** to download a portable `.celproj`, or **Publish level** for
+the public Community Level Browser.
 
-- Opening the link loads a copy of that project into the visitor's browser autosave.
-- The visitor can edit it without changing the original shared copy.
-- The share dialog also exposes a `.celproj` download for the shared project.
-- Share IDs are 128-bit random values.
-- The PHP endpoint accepts CEleste project JSON only, with a 4 MiB request limit and a basic per-IP upload rate limit.
-- Stored project records live under `storage/`, whose included `.htaccess` blocks direct web access.
-- No MySQL database is required.
-
-The original Celeste Classic `.p8` cartridge is **never** part of a shared or published project. It remains browser-local in IndexedDB and is never POSTed to `share.php` or `community.php`.
+The original Celeste Classic `.p8` cartridge is **never** part of a legacy shared or published project. It remains browser-local in IndexedDB and is never POSTed to `share.php` or `community.php`.
 
 ## Original-cartridge Preview
 
@@ -81,12 +76,14 @@ Some original Celeste entities are multi-sprite/custom-draw animations. If one o
 - Complete logical gameplay pieces rather than loose compound fragments
 - Arbitrary 0°/90°/180°/270° CELV rotation
 - Pencil, eraser, fill, eyedropper, undo/redo
+- Duplicate/delete level actions and safe room management
+- Fit-to-workspace zoom, optional grid, and persistent editor preferences
+- Visible browser-local autosave status and quick keyboard navigation
 - Chest, fake-wall, big-chest and Climb Chest properties
 - Linked Silver Keys and stackable Silver Gate blocks with link groups 0–63
 - Browser autosave and `.celproj` project files
 - Public community publishing and browsing
 - Likes, dislikes, comments, popularity sorting, search, and download/view counters
-- Unlisted hosted project links
 - Import/export of CELV `.8xv` AppVars
 - Validation of room/entity limits and AppVar data
 
@@ -108,7 +105,7 @@ python serve-local.py
 
 It binds only to `127.0.0.1`. ES modules, IndexedDB, and WebAssembly work through localhost. Do not open `index.html` directly with `file://`.
 
-The local Python server does not execute PHP, so **Share project**, **Browse levels**, and **Publish level** are automatically disabled there. Those features are available on the PHP-enabled hosted build.
+The local Python server does not execute PHP, so **Browse levels** and **Publish level** are automatically disabled there. Those features are available on the PHP-enabled hosted build.
 
 ## GoDaddy/cPanel hosting
 
