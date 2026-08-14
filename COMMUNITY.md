@@ -1,6 +1,6 @@
 # CEleste Studio Community Browser
 
-CEleste Studio 1.2.0 adds a public browser for individual CEleste levels on the PHP-enabled hosted build.
+CEleste Studio 1.3.0 includes a public browser for individual CEleste levels on the PHP-enabled hosted build.
 
 ## Community features
 

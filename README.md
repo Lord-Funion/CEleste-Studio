@@ -1,4 +1,4 @@
-# CEleste Studio 1.2.0
+# CEleste Studio 1.3.0
 
 CEleste Studio is a browser editor for CEleste custom levels and packs on the TI-84 Plus CE.
 
@@ -29,15 +29,7 @@ See `COMMUNITY.md` for community-specific details.
 
 Studio no longer exposes a **Share project** button. Existing `?share=<random-id>` links can still be opened so older links do not break.
 
-- Opening the link loads a copy of that project into the visitor's browser autosave.
-- The visitor can edit it without changing the original shared copy.
-- The share dialog also exposes a `.celproj` download for the shared project.
-- Share IDs are 128-bit random values.
-- The PHP endpoint accepts CEleste project JSON only, with a 4 MiB request limit and a basic per-IP upload rate limit.
-- Stored project records live under `storage/`, whose included `.htaccess` blocks direct web access.
-- No MySQL database is required.
-
-The original Celeste Classic `.p8` cartridge is **never** part of a shared or published project. It remains browser-local in IndexedDB and is never POSTed to `share.php` or `community.php`.
+The original Celeste Classic `.p8` cartridge is **never** part of a legacy shared or published project. It remains browser-local in IndexedDB and is never POSTed to `share.php` or `community.php`.
 
 ## Original-cartridge Preview
 
@@ -81,6 +73,9 @@ Some original Celeste entities are multi-sprite/custom-draw animations. If one o
 - Complete logical gameplay pieces rather than loose compound fragments
 - Arbitrary 0°/90°/180°/270° CELV rotation
 - Pencil, eraser, fill, eyedropper, undo/redo
+- Duplicate/delete level actions and safe room management
+- Fit-to-workspace zoom, optional grid, and persistent editor preferences
+- Visible browser-local autosave status and quick keyboard navigation
 - Chest, fake-wall, big-chest and Climb Chest properties
 - Linked Silver Keys and stackable Silver Gate blocks with link groups 0–63
 - Browser autosave and `.celproj` project files

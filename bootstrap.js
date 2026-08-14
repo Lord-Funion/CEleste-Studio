@@ -5,7 +5,6 @@ const COMMUNITY_CLIENT_KEY = 'celeste-studio-community-client-v1';
 const COMMUNITY_NAME_KEY = 'celeste-studio-community-name-v1';
 
 let pendingNotice = null;
-let sharingAvailable = false;
 let communityAvailable = false;
 let communityOffset = 0;
 let communityTotal = 0;
@@ -180,75 +179,7 @@ async function copyText(text) {
   return copied;
 }
 
-async function checkSharingService() {
-  const button = document.getElementById('shareProject');
-  if (!button) return;
-  button.disabled = true;
-  button.title = 'Checking the PHP sharing service…';
-
-  try {
-    const response = await fetch(shareApiUrl({ health: 1 }), {
-      cache: 'no-store',
-      headers: { Accept: 'application/json' }
-    });
-    const data = await readJsonResponse(response);
-    if (!data?.ok) throw new Error('Sharing service is unavailable.');
-    sharingAvailable = true;
-    button.disabled = false;
-    button.title = 'Create an unlisted link to the current project';
-  } catch {
-    sharingAvailable = false;
-    button.disabled = true;
-    button.title = 'Project sharing requires the PHP-enabled hosted build.';
-  }
-}
-
-async function shareCurrentProject() {
-  const button = document.getElementById('shareProject');
-  if (!sharingAvailable || !button) return;
-
-  const raw = localStorage.getItem(AUTOSAVE_KEY);
-  if (!raw) {
-    showNotice('Nothing to share', 'Make or open a project first, then try again.');
-    return;
-  }
-
-  const oldText = button.textContent;
-  button.disabled = true;
-  button.textContent = 'Sharing…';
-
-  try {
-    const response = await fetch(shareApiUrl(), {
-      method: 'POST',
-      cache: 'no-store',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json'
-      },
-      body: raw
-    });
-    const data = await readJsonResponse(response);
-    if (!data?.id) throw new Error('The sharing service did not return a share ID.');
-
-    const link = shareUrl(data.id);
-    const download = shareApiUrl({ id: data.id, download: 1 }).href;
-    const copied = await copyText(link);
-    showNotice(
-      'Project shared',
-      copied ? 'The unlisted share link was copied to your clipboard.' : 'Copy the link below and send it to whoever you want to share the project with.',
-      link,
-      download
-    );
-  } catch (error) {
-    showNotice('Could not share project', error?.message || String(error));
-  } finally {
-    button.textContent = oldText;
-    button.disabled = !sharingAvailable;
-  }
-}
-
 function wireSharingUi() {
-  document.getElementById('shareProject')?.addEventListener('click', shareCurrentProject);
   document.getElementById('shareClose')?.addEventListener('click', () => document.getElementById('shareDialog')?.close());
   document.getElementById('shareCopy')?.addEventListener('click', async () => {
     const input = document.getElementById('shareLink');
@@ -680,12 +611,12 @@ function showFatal(error) {
 
 try {
   await loadSharedProjectBeforeStudio();
-  await import('./app.js?v=20260812-community-v1');
+  await import('./app.js?v=20260814-editor-qol');
   await import('./interaction-fix.js?v=20260808-rotation-map2');
   await updateCartButton();
   wireSharingUi();
   wireCommunityUi();
-  await Promise.all([checkSharingService(), checkCommunityService()]);
+  await checkCommunityService();
 
   if (pendingNotice) {
     showNotice(pendingNotice.title, pendingNotice.message, pendingNotice.link, pendingNotice.download);
