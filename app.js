@@ -318,10 +318,16 @@ $('messageClose').onclick=()=>$('messageDialog').close();
 
 window.addEventListener('keydown',e=>{
   if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
+  if(document.querySelector('dialog[open]'))return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();$('saveProject').click();return;}
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();return;}
+  if(e.altKey&&e.key==='ArrowLeft'){e.preventDefault();stepRoom(-1);return;}
+  if(e.altKey&&e.key==='ArrowRight'){e.preventDefault();stepRoom(1);return;}
+  if(e.altKey&&e.key==='ArrowUp'){e.preventDefault();stepLevel(-1);return;}
+  if(e.altKey&&e.key==='ArrowDown'){e.preventDefault();stepLevel(1);return;}
   if(e.key==='['&&!$('previewDialog').open){e.preventDefault();switchRoom(-1);return;}
   if(e.key===']'&&!$('previewDialog').open){e.preventDefault();switchRoom(1);return;}
+  if(e.key.toLowerCase()==='g'){$('showGrid').checked=!$('showGrid').checked;saveEditorPrefs();drawEditor();return;}
   if(e.key.toLowerCase()==='r'&&!$('previewDialog').open){e.preventDefault();rotateSelected(!e.shiftKey);return;}
   const map={b:'pencil',e:'eraser',f:'fill',i:'eyedropper'};if(map[e.key.toLowerCase()]){tool=map[e.key.toLowerCase()];specialMode=null;updateToolButtons();renderPalette();}
 });
