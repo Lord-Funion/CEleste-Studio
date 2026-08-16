@@ -230,11 +230,21 @@ function footprintInBounds(fp){return fp.every(p=>p.x>=0&&p.x<16&&p.y>=0&&p.y<16
 function footprintsOverlap(a,b){return a.some(p=>b.some(q=>p.x===q.x&&p.y===q.y));}
 function entityAtCell(room,x,y){return(room.entities||[]).find(e=>entityFootprint(e).some(p=>p.x===x&&p.y===y));}
 function drawEditor(){
-  const room=currentRoom(),scale=Number($('zoom').value),cell=TILE_SIZE*scale;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);
+  const room=currentRoom(),scale=Number($('zoom').value),cell=TILE_SIZE*scale;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // Draw the editor grid behind level art. Placed tiles then cover the grid,
+  // so adjacent terrain reads as one connected surface instead of 8×8 boxes.
+  ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--border');ctx.lineWidth=1;
+  for(let i=0;i<=16;i++){
+    ctx.beginPath();ctx.moveTo(i*cell+.5,0);ctx.lineTo(i*cell+.5,canvas.height);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,i*cell+.5);ctx.lineTo(canvas.width,i*cell+.5);ctx.stroke();
+  }
+
   for(let y=0;y<16;y++)for(let x=0;x<16;x++){const id=room.tiles[y*16+x];if(!id)continue;if(!drawPicoSprite(ctx,id,x*cell,y*cell,cell,false,false,1,room.rotations?.[y*16+x]||0)){ctx.fillStyle=tileColor(id);ctx.fillRect(x*cell,y*cell,cell,cell);}}
   for(const e of room.entities||[])drawLogicalPiece(ctx,e.type,e.x*cell,e.y*cell,cell,1,entityRotation(e));
   drawPicoSprite(ctx,1,room.spawnX*cell,room.spawnY*cell,cell,false,false,.72);
-  ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--border');ctx.lineWidth=1;for(let i=0;i<=16;i++){ctx.beginPath();ctx.moveTo(i*cell+.5,0);ctx.lineTo(i*cell+.5,canvas.height);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*cell+.5);ctx.lineTo(canvas.width,i*cell+.5);ctx.stroke();}
 }
 function cellAt(event){const rect=canvas.getBoundingClientRect();const x=Math.floor((event.clientX-rect.left)/rect.width*16),y=Math.floor((event.clientY-rect.top)/rect.height*16);return{x:Math.max(0,Math.min(15,x)),y:Math.max(0,Math.min(15,y)),index:y*16+x};}
 function applyAt(x,y,index,forceErase=false){
